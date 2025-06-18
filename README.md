@@ -1,106 +1,149 @@
-Visão 360 - Guia de Lentes e Orçamento
-Descrição do Projeto
-O "Visão 360" é um aplicativo desenvolvido para tablets, com o objetivo principal de auxiliar vendedores de óticas a apresentar e explicar de forma interativa os diferentes tipos de lentes, tratamentos, espessuras e campos de visão para seus clientes. Além disso, o aplicativo permite a geração de orçamentos detalhados, incluindo a aplicação de códigos de desconto, e a partilha desses orçamentos em formato PDF.
+# ✨ Visão 360 - Guia de Lentes e Orçamento para Óticas ✨
 
-Funcionalidades
-Simulação de Tratamentos de Lentes: Permite visualizar o efeito de diversos tratamentos (antirreflexo, fotossensível, filtro de luz azul, etc.).
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/tabaresu1/lentes_app?style=for-the-badge)](https://github.com/tabaresu1/lentes_app/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-Análise de Espessura da Lente: Simula a espessura da lente com base na prescrição e no tipo de armação, ajudando o cliente a compreender as implicações estéticas.
+Um aplicativo interativo para tablets, projetado para auxiliar vendedores de óticas na apresentação e explicação de produtos ópticos aos clientes, além de facilitar a criação e partilha de orçamentos.
 
-Simulação de Campo de Visão: Demonstra as diferenças no campo de visão para lentes monofocais, bifocais e multifocais/progressivas, usando overlays visuais.
+---
 
-Geração de Orçamento:
+## 📋 Sumário
 
-Com base nas seleções de lentes e tratamentos, o aplicativo calcula e exibe as opções de orçamento.
+* [🎯 Descrição do Projeto](#-descrição-do-projeto)
+* [🚀 Funcionalidades Principais](#-funcionalidades-principais)
+    * [Visuais e Interativas](#visuais-e-interativas)
+    * [Orçamento e Vendas](#orçamento-e-vendas)
+    * [Ferramentas Administrativas e UX](#ferramentas-administrativas-e-ux)
+* [🛠️ Tecnologias Utilizadas](#️-tecnologias-utilizadas)
+* [⚙️ Configuração do Ambiente e Instalação](#️-configuração-do-ambiente-e-instalação)
+* [📖 Como Usar o Aplicativo](#-como-usar-o-aplicativo)
+* [🤝 Contribuição](#-contribuição)
 
-Permite a entrada de códigos de desconto (acumulativos até um limite de 25%).
+---
 
-Códigos Válidos: VISAO5, OTICA7, LENTE6, CUIDAR8, OCULOS10, APP7, NOVO6, MAIS9, LEVE5, BRILHO10.
+## 🎯 Descrição do Projeto
 
-Estes códigos podem ser alterados, adicionados ou removidos conforme a necessidade da loja no arquivo desconto_service.dart.
+O **Visão 360** é uma ferramenta indispensável para óticas modernas, proporcionando uma experiência de venda mais dinâmica e transparente. Com este aplicativo, os vendedores podem:
 
-Códigos Inválidos (para argumento de venda): GERENTE15, NOVO5, CUPOM7, OCULOS8, LENTES10, OTICA6, APP9, MAIS5, ONLINE7, CUIDAR6, FLASH10.
+* Demonstrar visualmente os benefícios de diferentes **lentes, tratamentos e espessuras**.
+* Simular o impacto das lentes no **campo de visão** do cliente.
+* Gerar **orçamentos detalhados** de forma rápida.
+* Aplicar **códigos de desconto** de forma estratégica.
+* **Partilhar orçamentos** diretamente em PDF.
 
-Estes códigos também podem ser alterados, adicionados ou removidos no arquivo desconto_service.dart para novas estratégias de venda.
+---
 
-Detecta e informa se um código de desconto já foi aplicado no mesmo orçamento.
+## 🚀 Funcionalidades Principais
 
-Geração e Partilha de PDF: Cria um documento PDF profissional com todos os detalhes do orçamento (incluindo o valor original e o desconto aplicado) e permite a partilha via aplicações instaladas no tablet.
+### Visuais e Interativas
 
-Entrada de Acréscimo (Código AC): Funcionalidade oculta (acessível via ícone de engrenagem) para aplicar um multiplicador de acréscimo aos preços, útil para ajustes de custo.
+* ### Simulação de Tratamentos de Lentes 👓
+    Visualize o efeito de tratamentos como antirreflexo, fotossensível, filtro de luz azul, entre outros.
 
-Interface Otimizada para Tablet: Design responsivo e amigável, com tratamento para evitar sobreposição de elementos pelo teclado virtual.
+* ### Análise de Espessura da Lente 📏
+    Simule a espessura da lente com base na prescrição e no tipo de armação, ajudando o cliente a entender as implicações estéticas.
 
-Tecnologias Utilizadas
-Flutter: Framework principal para desenvolvimento multiplataforma.
+* ### Simulação de Campo de Visão 👁️
+    Compare visualmente as diferenças no campo de visão para lentes monofocais, bifocais e multifocais/progressivas através de sobreposições.
 
-Provider: Para gerenciamento de estado da aplicação.
+### Orçamento e Vendas
 
-pdf: Geração de documentos PDF.
+* ### Geração de Orçamento Avançada 💰
+    * **Cálculo Dinâmico:** Gere opções de lentes e tratamentos com base na prescrição.
+    * **Códigos de Desconto (Acumulativos):**
+        * **Válidos:** `VISAO5`, `OTICA7`, `LENTE6`, `CUIDAR8`, `OCULOS10`, `APP7`, `NOVO6`, `MAIS9`, `LEVE5`, `BRILHO10`.
+            * *Estes códigos são configuráveis e podem ser ajustados, adicionados ou removidos no arquivo `lib/desconto_service.dart` para atender às necessidades promocionais da sua loja.*
+        * **Inválidos (Estratégicos):** `GERENTE15`, `NOVO5`, `CUPOM7`, `OCULOS8`, `LENTES10`, `OTICA6`, `APP9`, `MAIS5`, `ONLINE7`, `CUIDAR6`, `FLASH10`.
+            * *Esses códigos são projetados para "parecer" válidos, mas são negados pelo sistema, servindo como um ponto de partida para o vendedor argumentar e oferecer outras soluções. Eles também são configuráveis no arquivo `lib/desconto_service.dart`.*
+    * **Controle de Uso:** O sistema impede a reaplicação do mesmo código de desconto no mesmo orçamento, com feedback visual claro.
 
-printing: Funcionalidades de impressão e partilha de PDF.
+* ### Geração e Partilha de PDF 📧
+    * Crie documentos PDF profissionais com detalhes completos do orçamento (valor original, desconto aplicado e total final).
+    * Partilhe facilmente o PDF através de e-mail, WhatsApp ou outras aplicações de partilha disponíveis no tablet.
 
-path_provider: Para gerenciar caminhos de ficheiros temporários.
+### Ferramentas Administrativas e UX
 
-google_fonts (via pdf_google_fonts): Para garantir a consistência das fontes no PDF.
+* ### Ajuste de Acréscimo (Função Administrativa) ⚙️
+    Uma funcionalidade oculta, acessível via ícone de engrenagem no canto superior direito, permite definir um multiplicador de acréscimo nos preços base do orçamento.
 
-Configuração do Ambiente e Instalação
-Para configurar o projeto e executá-lo localmente, siga os passos abaixo:
+* ### Interface Otimizada para Tablet 📱
+    Design responsivo e amigável, com tratamento adequado para evitar sobreposição de elementos pelo teclado virtual (`SingleChildScrollView`).
 
-Pré-requisitos:
+---
 
-Instale o Flutter SDK (versão estável recomendada).
+## 🛠️ Tecnologias Utilizadas
 
-Configure o seu ambiente de desenvolvimento (VS Code, Android Studio) com os plugins Flutter e Dart.
+* **Flutter:** Framework líder para desenvolvimento de aplicações multiplataforma nativas.
+* **Provider:** Solução robusta e escalável para gerenciamento de estado.
+* **pdf:** Biblioteca para a criação e manipulação de documentos PDF.
+* **printing:** Ferramenta para imprimir e partilhar PDFs diretamente do aplicativo.
+* **path_provider:** Auxilia no gerenciamento de caminhos de ficheiros temporários no dispositivo.
+* **google_fonts (via pdf_google_fonts):** Garante a consistência e qualidade das fontes tipográficas nos documentos PDF gerados.
 
-Clonar o Repositório:
+---
 
-git clone https://github.com/tabaresu1/lentes_app
-cd lentes_app
+## ⚙️ Configuração do Ambiente e Instalação
 
-Instalar Dependências:
-No diretório raiz do projeto, execute:
+Para configurar e executar o **Visão 360** em seu ambiente de desenvolvimento, siga as instruções abaixo:
 
-flutter pub get
+1.  ### Pré-requisitos:
+    * Certifique-se de ter o [Flutter SDK](https://flutter.dev/docs/get-started/install) instalado e configurado (versão estável recomendada).
+    * Um editor de código configurado para Flutter (ex: VS Code com extensões Dart/Flutter, Android Studio).
 
-Executar o Aplicativo:
-Conecte um tablet (ou emulador/simulador de tablet) e execute:
+2.  ### Clonar o Repositório:
+    Abra seu terminal ou prompt de comando e execute:
+    ```bash
+    git clone [https://github.com/tabaresu1/lentes_app.git](https://github.com/tabaresu1/lentes_app.git)
+    cd lentes_app
+    ```
 
-flutter run
+3.  ### Instalar Dependências:
+    No diretório raiz do projeto, execute:
+    ```bash
+    flutter pub get
+    ```
 
-Ou, para construir uma versão para lançamento:
+4.  ### Executar o Aplicativo:
+    Conecte um tablet Android/iOS (ou inicie um emulador/simulador) e execute:
+    ```bash
+    flutter run
+    ```
+    Para construir uma versão de lançamento otimizada:
+    ```bash
+    flutter build apk --release # Para Android
+    flutter build ipa --release # Para iOS
+    ```
 
-flutter build apk --release # Para Android
-flutter build ipa --release # Para iOS
+---
 
-Como Usar
-Navegação: Utilize o menu lateral esquerdo para alternar entre as seções: "Espessura", "Tratamentos", "Campo de Visão" e "Orçamento".
+## 📖 Como Usar o Aplicativo
 
-Cálculo de Indicação (Orçamento):
+1.  ### Navegação:
+    Utilize o menu lateral esquerdo para alternar entre as seções principais: "Espessura", "Tratamentos", "Campo de Visão" e "Orçamento".
 
-Na seção de "Orçamento", insira os dados da prescrição.
+2.  ### Cálculo de Indicação (Seção Orçamento):
+    * Na seção "Orçamento", insira os dados de prescrição do cliente.
+    * O aplicativo apresentará as opções de lentes e tratamentos recomendadas com base nas regras internas.
+    * **Aplicar Descontos:** Digite um dos códigos de desconto no campo "Código de Desconto" e clique em "Aplicar Desconto". Observe o feedback visual na parte inferior da tela (verde para sucesso, laranja para código já aplicado, vermelho para inválido) e a atualização dos preços.
+    * Selecione a opção de lente desejada e clique em "Confirmar e Adicionar ao Orçamento".
 
-O aplicativo gerará as opções de lentes com base nas regras definidas.
+3.  ### Gerar e Partilhar Orçamento (Tela de Resumo):
+    * Após adicionar o item ao orçamento, você será levado à tela de resumo.
+    * Clique em **"Gerar e Partilhar"** para criar um PDF detalhado do orçamento. Uma janela de partilha nativa do tablet permitirá que você envie o documento por e-mail, WhatsApp, ou outras opções.
 
-Códigos de Desconto: Digite os códigos no campo "Código de Desconto" e clique em "Aplicar Desconto". Observe o feedback visual e a atualização dos preços.
+4.  ### Ajuste de Acréscimo (Função Administrativa):
+    * No canto superior direito da tela principal do aplicativo, clique no **ícone de engrenagem (⚙️)**.
+    * Insira o "Código AC" para definir um multiplicador de acréscimo nos preços base do orçamento (ex: 110 para 10% de acréscimo).
 
-Selecione a opção desejada e clique em "Confirmar e Adicionar ao Orçamento".
+---
 
-Gerar e Partilhar Orçamento:
+## 🤝 Contribuição
 
-Após confirmar o item do orçamento, você será direcionado para a tela de resumo.
+Sua contribuição é muito bem-vinda! Se você tiver ideias para melhorias, novas funcionalidades ou encontrar algum problema, por favor:
 
-Clique em "Gerar e Partilhar" para criar o PDF do orçamento e escolher uma opção de partilha (e-mail, WhatsApp, etc.).
+1.  Abra uma [**Issue**](https://github.com/tabaresu1/lentes_app/issues) detalhando sua sugestão ou o problema encontrado.
+2.  Crie um [**Pull Request**](https://github.com/tabaresu1/lentes_app/pulls) com suas implementações, garantindo que o código siga as boas práticas de desenvolvimento Flutter e o estilo existente do projeto.
 
-Ajuste de Acréscimo (Função Administrativa):
-
-No canto superior direito da tela principal, clique no ícone de engrenagem (⚙️) para abrir a caixa de diálogo "Inserir AC" e ajustar o multiplicador de acréscimo nos preços base.
-
-Contribuição
-Contribuições são bem-vindas! Se você tiver ideias para melhorias, novas funcionalidades ou detetar problemas, sinta-se à vontade para:
-
-Abrir uma Issue.
-
-Criar um Pull Request.
-
-Ao contribuir, por favor, siga as boas práticas de desenvolvimento Flutter e o estilo de código existente.
+---
