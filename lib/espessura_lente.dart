@@ -9,6 +9,34 @@ enum TelaEspessuraOpcao { menu, calculadora, comparativo }
 enum TipoLente { simples, multifocal }
 enum TipoArmacao { acetato, metal, nylon, balgriff }
 
+// NOVOS ENUMS PARA LENTES MULTIFOCAIS
+enum MaterialLenteMultifocal {
+  l156, // Lente 1.56
+  l160, // Lente 1.60
+  l167, // Lente 1.67
+  l174, // Lente 1.74
+  poli, // Policarbonato
+}
+
+enum CampoVisaoPercentagem {
+  p40, // 40%
+  p50, // 50%
+  p67, // 67%
+  p80, // 80%
+  p87, // 87%
+  p98, // 98%
+}
+
+// Os tratamentos são os mesmos do simples, mas pode-se ter um enum separado se houver distinções futuras
+enum TipoTratamentoMultifocal {
+  incolor2Camadas, // INCOLOR 2 CAMADAS
+  ar7Camadas,      // AR 7 CAMADAS
+  blue15Camadas,   // BLUE 15 CAMADAS
+  blue25Camadas,   // BLUE 25 CAMADAS
+  photo,           // PHOTO
+  transition,      // TRANSITION
+}
+
 class TelaEspessura extends StatefulWidget {
   const TelaEspessura({super.key});
   @override
@@ -297,7 +325,7 @@ class _TelaEspessuraState extends State<TelaEspessura> {
             children: values.map((v) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(v.toString().split('.').last.toUpperCase()),
-            )).toList(),
+            )).toList(), // O .toList() estava fora do parêntese do Padding.
           ),
         ),
       ],

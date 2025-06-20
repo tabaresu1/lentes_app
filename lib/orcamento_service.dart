@@ -22,21 +22,41 @@ class OpcaoLenteCalculada {
   final double precoOriginal; // Preço antes do desconto
   final double precoComDesconto; // Preço após a aplicação do desconto
   final String? status;
+  final CampoVisaoPercentagem? campoVisao; // Para agrupar multifocais na UI
 
   OpcaoLenteCalculada({
     required this.descricao,
     required this.precoOriginal,
     required this.precoComDesconto,
     this.status,
+    this.campoVisao,
   });
+
+  // NOVO: Sobrescreve o operador == e o hashCode para comparação de valor
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true; // Mesma instância
+    if (other.runtimeType != runtimeType) return false; // Tipos diferentes
+
+    // Compara as propriedades de cada objeto
+    return other is OpcaoLenteCalculada &&
+           other.descricao == descricao &&
+           other.precoOriginal == precoOriginal &&
+           other.precoComDesconto == precoComDesconto &&
+           other.status == status &&
+           other.campoVisao == campoVisao;
+  }
+
+  @override
+  int get hashCode => Object.hash(descricao, precoOriginal, precoComDesconto, status, campoVisao);
 }
 
 class OrcamentoItem {
   final String categoria;
   final String descricao;
   final double preco; // Preço final com desconto
-  final double precoOriginalItem; // NOVO: Preço do item antes dos descontos
-  final double percentagemDescontoAplicada; // NOVO: Percentagem de desconto aplicada ao item
+  final double precoOriginalItem; // Preço do item antes dos descontos
+  final double percentagemDescontoAplicada; // Percentagem de desconto aplicada ao item
 
   OrcamentoItem({
     required this.categoria,
@@ -117,7 +137,8 @@ class OrcamentoService with ChangeNotifier {
           descricao: "${regra.lente} ${regra.observacao}",
           precoOriginal: 0, 
           precoComDesconto: 0, 
-          status: 'nao_recomendado'
+          status: 'nao_recomendado',
+          campoVisao: regra.campoVisao, 
         ));
       } else {
         regra.precos.forEach((tratamento, precoBase) {
@@ -129,6 +150,7 @@ class OrcamentoService with ChangeNotifier {
             precoOriginal: precoAposAcrescimo, 
             precoComDesconto: precoFinalComDesconto, 
             status: regra.status,
+            campoVisao: regra.campoVisao, 
           ));
         });
       }
@@ -142,9 +164,9 @@ class OrcamentoService with ChangeNotifier {
     _itensFinais.add(OrcamentoItem(
       categoria: "Lente e Tratamentos",
       descricao: opcaoFinal.descricao,
-      preco: opcaoFinal.precoComDesconto, // Preço final com desconto
-      precoOriginalItem: opcaoFinal.precoOriginal, // NOVO: Salva o preço original
-      percentagemDescontoAplicada: _descontoAplicado, // NOVO: Salva a percentagem total de desconto aplicada
+      preco: opcaoFinal.precoComDesconto,
+      precoOriginalItem: opcaoFinal.precoOriginal,
+      percentagemDescontoAplicada: _descontoAplicado,
     ));
     _prescricaoTemp = null;
     _descontoAplicado = 0.0; 

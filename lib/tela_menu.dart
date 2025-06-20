@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart'; 
+import 'package:provider/provider.dart';
 import 'orcamento_service.dart';
 import 'tratamento_lente.dart';
 import 'espessura_lente.dart';
@@ -15,7 +15,7 @@ class TelaMenu extends StatefulWidget {
 }
 
 class _TelaMenuState extends State<TelaMenu> {
-  int _paginaAtual = 0;
+  int _paginaAtual = 1;
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _TelaMenuState extends State<TelaMenu> {
     const TelaTratamentoLente(),
     const TelaEspessura(),
     const TelaCampoVisao(),
-    const TelaOrcamento(), 
+    const TelaOrcamento(),
   ];
 
   void _onPaginaSelecionada(int index) {
@@ -36,47 +36,68 @@ class _TelaMenuState extends State<TelaMenu> {
     });
   }
 
-  // --- FUNÇÃO: Caixa de diálogo para inserir o código AC (AGORA COM CORREÇÃO GRÁFICA E SCROLL) ---
   void _mostrarDialogoAC(BuildContext context) {
     final controller = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Inserir AC'),
-          // CORREÇÃO: Envolver o conteúdo com SingleChildScrollView para evitar overflow do teclado
-          content: SingleChildScrollView( 
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Código AC',
-                border: OutlineInputBorder(), 
-                floatingLabelBehavior: FloatingLabelBehavior.always, // Força o rótulo a flutuar
+        return Dialog(
+          insetPadding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 400,
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Inserir AC',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Código AC',
+                      border: OutlineInputBorder(),
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<OrcamentoService>().setAcrescimo(controller.text);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Código AC inserido!'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
+                        child: const Text('Confirmar'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                context.read<OrcamentoService>().setAcrescimo(controller.text);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Código AC inserido!'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              },
-              child: const Text('Confirmar'),
-            ),
-          ],
         );
       },
     );
@@ -85,7 +106,8 @@ class _TelaMenuState extends State<TelaMenu> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack( // Usamos um Stack para poder sobrepor o botão de acréscimo
+      resizeToAvoidBottomInset: false,
+      body: Stack(
         children: [
           Row(
             children: [
@@ -149,13 +171,11 @@ class _TelaMenuState extends State<TelaMenu> {
               tooltip: 'Definir Acréscimo',
             ),
           ),
-          
         ],
       ),
     );
   }
 
-  // Widget helper para construir os botões do menu
   Widget _buildBotaoMenu({required String texto, required int index}) {
     final bool isSelected = _paginaAtual == index;
 
