@@ -6,7 +6,7 @@ import 'tratamento_lente.dart';
 import 'espessura_lente.dart';
 import 'campo_visao.dart';
 import 'orcamento.dart';
-// import 'tela_login_ac.dart'; // Removida a importação, pois não é mais a tela inicial aqui
+import 'tela_login_ac.dart'; // Importa a tela de login AC, agora como uma página
 
 class TelaMenu extends StatefulWidget {
   const TelaMenu({super.key});
@@ -17,7 +17,6 @@ class TelaMenu extends StatefulWidget {
 
 class _TelaMenuState extends State<TelaMenu> {
   int _paginaAtual = 0;
-  // Removida a variável _isLoggedIn, pois o login AC não é mais inicial no app.
 
   @override
   void initState() {
@@ -25,28 +24,41 @@ class _TelaMenuState extends State<TelaMenu> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
-  final List<Widget> _paginas = [
+  // Página base: tratamentos, espessura, campo de visão.
+  // Orçamento será um caso especial no _onPaginaSelecionada e build.
+  final List<Widget> _paginasBase = [ 
     const TelaTratamentoLente(),
     const TelaEspessura(),
     const TelaCampoVisao(),
-    const TelaOrcamento(),
   ];
 
   void _onPaginaSelecionada(int index) {
-    setState(() {
-      _paginaAtual = index;
-    });
+    // Se o índice selecionado for 3 (que é o do botão 'Orçamento')
+    if (index == 3) {
+      final orcamentoService = context.read<OrcamentoService>();
+      // Se o Código AC não estiver definido para a sessão atual,
+      // ele será tratado no build para exibir a TelaLoginAC.
+      // Se já estiver definido, vai para a TelaOrcamento.
+      setState(() {
+        _paginaAtual = index; // Define o índice para o 'slot' do orçamento
+      });
+    } else {
+      // Para outras páginas (Tratamentos, Espessura, Campo de Visão)
+      setState(() {
+        _paginaAtual = index;
+      });
+    }
   }
 
-  // Método _mostrarDialogoAC para ser usado pela engrenagem
+  // Método _mostrarDialogoAC para ser usado pela engrenagem (agora como AlertDialog)
   void _mostrarDialogoAC(BuildContext context) {
     final controller = TextEditingController();
-
+    
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Inserir AC'),
+          title: const Text('Inserir/Atualizar Código AC'),
           content: TextField(
             controller: controller,
             decoration: const InputDecoration(
@@ -64,12 +76,19 @@ class _TelaMenuState extends State<TelaMenu> {
             ),
             ElevatedButton(
               onPressed: () {
-                context.read<OrcamentoService>().setAcrescimo(controller.text);
+                final String acCode = controller.text.trim();
+                context.read<OrcamentoService>().setAcrescimo(acCode);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Código AC atualizado!'), // Mensagem ajustada
-                    backgroundColor: Colors.blue,
+                  SnackBar(
+                    content: Text(
+                      context.read<OrcamentoService>().isAcCodeSetForCurrentSession
+                          ? 'Código AC atualizado com sucesso!'
+                          : 'Código AC inválido.',
+                    ),
+                    backgroundColor: context.read<OrcamentoService>().isAcCodeSetForCurrentSession
+                        ? Colors.blue
+                        : Colors.orange,
                   ),
                 );
               },
@@ -81,13 +100,26 @@ class _TelaMenuState extends State<TelaMenu> {
     );
   }
 
-  // Removido o callback _handleLoginSuccess, pois não é mais a tela inicial
-
   @override
   Widget build(BuildContext context) {
-    // Não há mais verificação de login aqui. O app começa diretamente no menu.
+    final orcamentoService = context.watch<OrcamentoService>(); // Observa o serviço para reagir a mudanças no AC
+
+    // Conteúdo a ser exibido na área da direita
+    Widget currentPageContent;
+    if (_paginaAtual == 3) { // Se o índice selecionado é o do Orçamento
+      if (!orcamentoService.isAcCodeSetForCurrentSession) {
+        // Se o Código AC não está definido, mostra a tela de login AC
+        currentPageContent = const TelaLoginAC();
+      } else {
+        // Se o Código AC está definido, mostra a TelaOrcamento
+        currentPageContent = const TelaOrcamento();
+      }
+    } else {
+      // Para as outras páginas (Tratamentos, Espessura, Campo de Visão)
+      currentPageContent = _paginasBase[_paginaAtual];
+    }
+
     return Scaffold(
-      // Mantido como false para que o teclado flutue sobre o conteúdo principal
       resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
@@ -126,7 +158,7 @@ class _TelaMenuState extends State<TelaMenu> {
                           const SizedBox(height: 16),
                           _buildBotaoMenu(texto: 'Campo de Visão', index: 2),
                           const SizedBox(height: 16),
-                          _buildBotaoMenu(texto: 'Orçamento', index: 3),
+                          _buildBotaoMenu(texto: 'Orçamento', index: 3), // Orçamento é o índice 3
                         ],
                       ),
                     ),
@@ -134,16 +166,16 @@ class _TelaMenuState extends State<TelaMenu> {
                 ),
               ),
 
-              // --- ÁREA DE CONTEÚDO À DIREITA ---
+              // --- ÁREA DE CONTEÚDO À DIREITA (Dinâmica) ---
               Expanded(
-                child: IndexedStack(
-                  index: _paginaAtual,
-                  children: _paginas,
+                child: AnimatedSwitcher( // Adicionado para transição suave entre telas
+                  duration: const Duration(milliseconds: 300),
+                  child: currentPageContent,
                 ),
               ),
             ],
           ),
-          // O botão de engrenagem continua aqui.
+          // Botão de engrenagem
           Positioned(
             top: 10,
             right: 10,

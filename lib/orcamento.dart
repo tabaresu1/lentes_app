@@ -4,7 +4,7 @@ import 'orcamento_service.dart';
 import 'desconto_service.dart';
 import 'pdf_generator.dart';
 import 'espessura_lente.dart';
-import 'tela_login_ac.dart'; // NOVO: Importa a tela de login AC
+// import 'tela_login_ac.dart'; // Não é mais necessário importar aqui
 
 class TelaOrcamento extends StatefulWidget {
   const TelaOrcamento({Key? key}) : super(key: key);
@@ -19,15 +19,12 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
 
   Map<CampoVisaoPercentagem, List<OpcaoLenteCalculada>> _opcoesMultifocalAgrupadas = {};
 
-  // NOVO: Flag para controlar a exibição do diálogo de login AC
-  bool _isAcLoginDialogShowing = false;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _opcaoSelecionada = null;
-    _agruparOpcoes();
-    _checkAcCodeForBudgetSession(); // NOVO: Verifica o Código AC ao iniciar/atualizar
+    _agruparOpcoes(); 
+    // Removida a chamada _checkAcCodeForBudgetSession, pois o TelaMenu agora gerencia isso
   }
 
   @override
@@ -35,57 +32,6 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
     _descontoCodigoController.dispose();
     super.dispose();
   }
-
-  // NOVO: Método para verificar e solicitar o Código AC
-  void _checkAcCodeForBudgetSession() {
-    // Adia a execução para após a construção do frame para evitar erros de setState durante build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final orcamentoService = context.read<OrcamentoService>();
-      if (!orcamentoService.isAcCodeSetForCurrentSession && !_isAcLoginDialogShowing) {
-        _isAcLoginDialogShowing = true; // Previne que o diálogo seja mostrado múltiplas vezes
-        showDialog(
-          context: context,
-          barrierDismissible: false, // Força o usuário a inserir o código
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('Código AC Necessário'),
-              content: TelaLoginAC(
-                onLoginSuccess: (bool success) {
-                  Navigator.of(context).pop(); // Fecha o diálogo
-                  if (success) {
-                    _isAcLoginDialogShowing = false; // Reseta a flag do diálogo
-                    _agruparOpcoes(); // Reagrupa opções com o novo AC
-                    // Opcional: Mostrar um SnackBar de sucesso do login AC
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Código AC inserido com sucesso!'),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  } else {
-                    // Lidar com falha no login (ex: permanecer na tela de orçamento com aviso)
-                    _isAcLoginDialogShowing = false; // Reseta a flag do diálogo
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Código AC inválido. Orçamento sem acréscimo.'),
-                        backgroundColor: Colors.orange, // Ou vermelho
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                },
-              ),
-            );
-          },
-        ).then((_) {
-          // Garante que a flag seja resetada mesmo se o diálogo for descartado de outra forma
-          _isAcLoginDialogShowing = false;
-        });
-      }
-    });
-  }
-
 
   // Função para agrupar as opções de multifocal
   void _agruparOpcoes() {
@@ -124,8 +70,6 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
   @override
   Widget build(BuildContext context) {
     final orcamentoService = context.watch<OrcamentoService>();
-    // _agruparOpcoes(); // Já chamado em didChangeDependencies e no callback do AC
-
 
     return Scaffold(
       appBar: AppBar(

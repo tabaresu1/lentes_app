@@ -35,9 +35,10 @@ class OpcaoLenteCalculada {
   // Sobrescreve o operador == e o hashCode para comparação de valor
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
+    if (identical(this, other)) return true; // Mesma instância
+    if (other.runtimeType != runtimeType) return false; // Tipos diferentes
 
+    // Compara as propriedades de cada objeto
     return other is OpcaoLenteCalculada &&
            other.descricao == descricao &&
            other.precoOriginal == precoOriginal &&
@@ -75,14 +76,14 @@ class OrcamentoService with ChangeNotifier {
   final Set<String> _codigosDescontoAplicados = {};
   double _descontoAplicado = 0.0; 
 
-  // NOVO: Flag para rastrear se o Código AC foi definido para a sessão atual
+  // Flag para rastrear se o Código AC foi definido para a sessão atual
   bool _isAcCodeSetForCurrentSession = false;
 
   List<OrcamentoItem> get itensFinais => _itensFinais;
   bool get temPrescricaoPendente => _prescricaoTemp != null;
   double get descontoAplicado => _descontoAplicado; 
   Set<String> get codigosDescontoAplicados => Set.from(_codigosDescontoAplicados);
-  // NOVO: Getter para a flag de sessão AC
+  // Getter para a flag de sessão AC
   bool get isAcCodeSetForCurrentSession => _isAcCodeSetForCurrentSession;
 
   double get total {
@@ -124,7 +125,7 @@ class OrcamentoService with ChangeNotifier {
 
   void salvarPrescricao(PrescricaoTemporaria prescricao) {
     _prescricaoTemp = prescricao;
-    // NÃO reseta _isAcCodeSetForCurrentSession aqui, pois estamos salvando uma prescrição na sessão atual
+    _isAcCodeSetForCurrentSession = false; // AQUI: Reset da flag APENAS ao salvar escolha
     notifyListeners();
   }
 
@@ -180,7 +181,7 @@ class OrcamentoService with ChangeNotifier {
     _prescricaoTemp = null;
     _descontoAplicado = 0.0; 
     _codigosDescontoAplicados.clear(); 
-    _isAcCodeSetForCurrentSession = false; // NOVO: Reseta a flag para um novo orçamento
+    // MANTIDO: _isAcCodeSetForCurrentSession NÃO é resetado aqui.
     notifyListeners();
   }
   
@@ -189,7 +190,7 @@ class OrcamentoService with ChangeNotifier {
     _prescricaoTemp = null;
     _descontoAplicado = 0.0; 
     _codigosDescontoAplicados.clear(); 
-    _isAcCodeSetForCurrentSession = false; // NOVO: Reseta a flag para um novo orçamento
+    // MANTIDO: _isAcCodeSetForCurrentSession NÃO é resetado aqui.
     notifyListeners();
   }
 }
