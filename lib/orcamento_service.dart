@@ -32,13 +32,12 @@ class OpcaoLenteCalculada {
     this.campoVisao,
   });
 
-  // NOVO: Sobrescreve o operador == e o hashCode para comparação de valor
+  // Sobrescreve o operador == e o hashCode para comparação de valor
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true; // Mesma instância
-    if (other.runtimeType != runtimeType) return false; // Tipos diferentes
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
 
-    // Compara as propriedades de cada objeto
     return other is OpcaoLenteCalculada &&
            other.descricao == descricao &&
            other.precoOriginal == precoOriginal &&
@@ -76,28 +75,37 @@ class OrcamentoService with ChangeNotifier {
   final Set<String> _codigosDescontoAplicados = {};
   double _descontoAplicado = 0.0; 
 
+  // NOVO: Flag para rastrear se o Código AC foi definido para a sessão atual
+  bool _isAcCodeSetForCurrentSession = false;
+
   List<OrcamentoItem> get itensFinais => _itensFinais;
   bool get temPrescricaoPendente => _prescricaoTemp != null;
   double get descontoAplicado => _descontoAplicado; 
   Set<String> get codigosDescontoAplicados => Set.from(_codigosDescontoAplicados);
+  // NOVO: Getter para a flag de sessão AC
+  bool get isAcCodeSetForCurrentSession => _isAcCodeSetForCurrentSession;
 
   double get total {
     if (_itensFinais.isEmpty) return 0.0;
     return _itensFinais.map((item) => item.preco).reduce((a, b) => a + b);
   }
 
+  // Função para definir o multiplicador a partir do código AC
   void setAcrescimo(String codigoAC) {
     if (codigoAC.isEmpty) {
       _acrescimoMultiplier = 1.0;
+      _isAcCodeSetForCurrentSession = false; // Se o código for vazio, reseta a flag
       return;
     }
     final valor = double.tryParse(codigoAC);
     if (valor != null && valor >= 100) {
       _acrescimoMultiplier = valor / 100.0;
+      _isAcCodeSetForCurrentSession = true; // Código AC válido foi inserido
     } else {
-      _acrescimoMultiplier = 1.0; 
+      _acrescimoMultiplier = 1.0; // Volta ao padrão se o código for inválido
+      _isAcCodeSetForCurrentSession = false; // Código AC inválido
     }
-    print("Multiplicador de Acréscimo definido para: $_acrescimoMultiplier");
+    print("Multiplicador de Acréscimo definido para: $_acrescimoMultiplier. AC Set: $_isAcCodeSetForCurrentSession");
     notifyListeners();
   }
 
@@ -116,6 +124,7 @@ class OrcamentoService with ChangeNotifier {
 
   void salvarPrescricao(PrescricaoTemporaria prescricao) {
     _prescricaoTemp = prescricao;
+    // NÃO reseta _isAcCodeSetForCurrentSession aqui, pois estamos salvando uma prescrição na sessão atual
     notifyListeners();
   }
 
@@ -171,6 +180,7 @@ class OrcamentoService with ChangeNotifier {
     _prescricaoTemp = null;
     _descontoAplicado = 0.0; 
     _codigosDescontoAplicados.clear(); 
+    _isAcCodeSetForCurrentSession = false; // NOVO: Reseta a flag para um novo orçamento
     notifyListeners();
   }
   
@@ -179,6 +189,7 @@ class OrcamentoService with ChangeNotifier {
     _prescricaoTemp = null;
     _descontoAplicado = 0.0; 
     _codigosDescontoAplicados.clear(); 
+    _isAcCodeSetForCurrentSession = false; // NOVO: Reseta a flag para um novo orçamento
     notifyListeners();
   }
 }

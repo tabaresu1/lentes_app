@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'orcamento_service.dart';
-import 'desconto_service.dart'; // Importa o ResultadoDesconto
-import 'pdf_generator.dart'; // Importa o SEU gerador de PDF
-import 'espessura_lente.dart'; // Importa CampoVisaoPercentagem
+import 'desconto_service.dart';
+import 'pdf_generator.dart';
+import 'espessura_lente.dart';
+import 'tela_login_ac.dart'; // NOVO: Importa a tela de login AC
 
 class TelaOrcamento extends StatefulWidget {
   const TelaOrcamento({Key? key}) : super(key: key);
@@ -16,15 +17,17 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
   OpcaoLenteCalculada? _opcaoSelecionada;
   final TextEditingController _descontoCodigoController = TextEditingController();
 
-  // Mapeamento para agrupar opções por CampoVisaoPercentagem
   Map<CampoVisaoPercentagem, List<OpcaoLenteCalculada>> _opcoesMultifocalAgrupadas = {};
+
+  // NOVO: Flag para controlar a exibição do diálogo de login AC
+  bool _isAcLoginDialogShowing = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Limpa a seleção sempre que a tela for reconstruída com novas opções
     _opcaoSelecionada = null;
     _agruparOpcoes();
+    _checkAcCodeForBudgetSession(); // NOVO: Verifica o Código AC ao iniciar/atualizar
   }
 
   @override
@@ -33,45 +36,80 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
     super.dispose();
   }
 
+  // NOVO: Método para verificar e solicitar o Código AC
+  void _checkAcCodeForBudgetSession() {
+    // Adia a execução para após a construção do frame para evitar erros de setState durante build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final orcamentoService = context.read<OrcamentoService>();
+      if (!orcamentoService.isAcCodeSetForCurrentSession && !_isAcLoginDialogShowing) {
+        _isAcLoginDialogShowing = true; // Previne que o diálogo seja mostrado múltiplas vezes
+        showDialog(
+          context: context,
+          barrierDismissible: false, // Força o usuário a inserir o código
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Código AC Necessário'),
+              content: TelaLoginAC(
+                onLoginSuccess: (bool success) {
+                  Navigator.of(context).pop(); // Fecha o diálogo
+                  if (success) {
+                    _isAcLoginDialogShowing = false; // Reseta a flag do diálogo
+                    _agruparOpcoes(); // Reagrupa opções com o novo AC
+                    // Opcional: Mostrar um SnackBar de sucesso do login AC
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Código AC inserido com sucesso!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    // Lidar com falha no login (ex: permanecer na tela de orçamento com aviso)
+                    _isAcLoginDialogShowing = false; // Reseta a flag do diálogo
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Código AC inválido. Orçamento sem acréscimo.'),
+                        backgroundColor: Colors.orange, // Ou vermelho
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
+              ),
+            );
+          },
+        ).then((_) {
+          // Garante que a flag seja resetada mesmo se o diálogo for descartado de outra forma
+          _isAcLoginDialogShowing = false;
+        });
+      }
+    });
+  }
+
+
   // Função para agrupar as opções de multifocal
   void _agruparOpcoes() {
     final orcamentoService = context.read<OrcamentoService>();
     final todasAsOpcoes = orcamentoService.gerarOpcoesDaTabela();
     
-    // Limpa o mapa a cada nova geração
     _opcoesMultifocalAgrupadas = {}; 
 
     for (var opcao in todasAsOpcoes) {
       if (opcao.campoVisao != null) {
-        // Se for multifocal com campo de visão, agrupa
         _opcoesMultifocalAgrupadas.putIfAbsent(opcao.campoVisao!, () => []).add(opcao);
-      } else {
-        // Se for lente simples ou não recomendado, trata separadamente
-        // Para simplificar, as não recomendadas e simples podem ir para uma chave específica
-        // Ou você pode ter uma lista separada para 'simples'
-        // NOTA: Para um tratamento mais robusto, as opções simples e não recomendadas
-        // poderiam ter seus próprios agrupamentos ou serem exibidas diretamente.
-        // Por ora, as não recomendadas serão filtradas e exibidas no final.
-        // As simples ainda serão geradas como opções normais, sem campoVisao,
-        // mas aparecerão sem agrupamento no ExpansionTile se o _agruparOpcoes não as tratar.
-        // O código atual irá colocá-las em um ExpansionTile 'default' se for adicionado.
-        // Para este exemplo, apenas os campos de visão específicos de multifocal serão agrupados.
-        // As opções sem campoVisao (simples) serão exibidas normalmente no final da lista,
-        // mas não dentro de um ExpansionTile, o que está de acordo com o pedido de agrupar APENAS multifocais.
       }
     }
   }
-
 
   // Função para exibir o SnackBar com a mensagem de desconto
   void _showDescontoFeedback(ResultadoDesconto resultado) {
     Color backgroundColor;
     if (resultado.valido) {
-      backgroundColor = Colors.green; // Sucesso na aplicação do desconto
+      backgroundColor = Colors.green;
     } else if (resultado.codigoJaAplicado) {
-      backgroundColor = Colors.orange; // Código já aplicado (aviso)
+      backgroundColor = Colors.orange;
     } else {
-      backgroundColor = Colors.red; // Código inválido (erro)
+      backgroundColor = Colors.red;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +124,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
   @override
   Widget build(BuildContext context) {
     final orcamentoService = context.watch<OrcamentoService>();
-    _agruparOpcoes(); // Reagrupa as opções sempre que o widget é reconstruído (mudanças no estado)
+    // _agruparOpcoes(); // Já chamado em didChangeDependencies e no callback do AC
 
 
     return Scaffold(
@@ -94,7 +132,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
         title: Text(orcamentoService.temPrescricaoPendente ? 'Selecione a Opção' : 'Orçamento Final', style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF0A2956),
       ),
-      // Adiciona SingleChildScrollView para evitar overflow do teclado
+      resizeToAvoidBottomInset: false, // Mantido para o comportamento de flutuar
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -108,8 +146,6 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
 
   // ETAPA 1: TELA DE SELEÇÃO DE OPÇÕES
   Widget _buildTelaDeSelecao(OrcamentoService orcamentoService) {
-    // Agora _opcoesMultifocalAgrupadas já está preenchida via _agruparOpcoes()
-    // Separamos as opções "não recomendadas" e as "simples" para exibição diferenciada
     List<OpcaoLenteCalculada> naoRecomendadas = [];
     List<OpcaoLenteCalculada> simplesOpcoes = [];
 
@@ -117,7 +153,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
     for (var opcao in todasAsOpcoesDoServico) {
       if (opcao.status == 'nao_recomendado') {
         naoRecomendadas.add(opcao);
-      } else if (opcao.campoVisao == null) { // Lentes que não são multifocais ou não têm campo de visão
+      } else if (opcao.campoVisao == null) {
         simplesOpcoes.add(opcao);
       }
     }
@@ -149,8 +185,8 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                 onPressed: () {
                   final resultado = orcamentoService.aplicarDesconto(_descontoCodigoController.text);
                   _showDescontoFeedback(resultado);
-                  _descontoCodigoController.clear(); // Limpa o campo após aplicar
-                  _agruparOpcoes(); // Reagrupa as opções após aplicar desconto, caso os preços mudem
+                  _descontoCodigoController.clear();
+                  _agruparOpcoes();
                 },
                 child: const Text('Aplicar Desconto'),
               ),
@@ -162,23 +198,23 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Align(
-              alignment: Alignment.centerLeft, // Alinha os chips à esquerda
+              alignment: Alignment.centerLeft,
               child: Wrap(
-                spacing: 8.0, // espaçamento horizontal
-                runSpacing: 4.0, // espaçamento vertical
+                spacing: 8.0,
+                runSpacing: 4.0,
                 children: orcamentoService.codigosDescontoAplicados.map((codigo) => Chip(
                   label: Text(codigo),
-                  backgroundColor: Colors.blue.shade100, // Um pouco de cor para o chip
+                  backgroundColor: Colors.blue.shade100,
                   labelStyle: const TextStyle(color: Colors.blueGrey),
                 )).toList(),
               ),
             ),
           ),
         const SizedBox(height: 16),
-        // NOVO: Exibição agrupada por Campo de Visão para multifocais
+        // Exibição agrupada por Campo de Visão para multifocais
         if (_opcoesMultifocalAgrupadas.isNotEmpty && _opcoesMultifocalAgrupadas.keys.any((key) => key != null))
           ..._opcoesMultifocalAgrupadas.entries.where((entry) => entry.key != null).map((entry) {
-            final campoVisao = entry.key!; // Campo de Visão daquele grupo
+            final campoVisao = entry.key!;
             final opcoesDesseCampo = entry.value;
 
             final opcoesValidas = opcoesDesseCampo.where((o) => o.status != 'nao_recomendado').toList();
@@ -201,7 +237,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                         ? const Icon(Icons.warning_amber_rounded, color: Colors.orange)
                         : Radio<OpcaoLenteCalculada>(
                               value: opcao,
-                              groupValue: _opcaoSelecionada, // Agora compara por valor
+                              groupValue: _opcaoSelecionada,
                               onChanged: (value) => setState(() => _opcaoSelecionada = value),
                             ),
                     title: Text(opcao.descricao, style: const TextStyle(fontWeight: FontWeight.bold)),

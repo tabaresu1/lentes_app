@@ -6,6 +6,7 @@ import 'tratamento_lente.dart';
 import 'espessura_lente.dart';
 import 'campo_visao.dart';
 import 'orcamento.dart';
+// import 'tela_login_ac.dart'; // Removida a importação, pois não é mais a tela inicial aqui
 
 class TelaMenu extends StatefulWidget {
   const TelaMenu({super.key});
@@ -15,7 +16,8 @@ class TelaMenu extends StatefulWidget {
 }
 
 class _TelaMenuState extends State<TelaMenu> {
-  int _paginaAtual = 1;
+  int _paginaAtual = 0;
+  // Removida a variável _isLoggedIn, pois o login AC não é mais inicial no app.
 
   @override
   void initState() {
@@ -36,77 +38,57 @@ class _TelaMenuState extends State<TelaMenu> {
     });
   }
 
+  // Método _mostrarDialogoAC para ser usado pela engrenagem
   void _mostrarDialogoAC(BuildContext context) {
     final controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 400,
-              maxHeight: MediaQuery.of(context).size.height * 0.7,
+        return AlertDialog(
+          title: const Text('Inserir AC'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Código AC',
+              border: OutlineInputBorder(),
+              floatingLabelBehavior: FloatingLabelBehavior.always,
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Inserir AC',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Código AC',
-                      border: OutlineInputBorder(),
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: () {
-                          context.read<OrcamentoService>().setAcrescimo(controller.text);
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Código AC inserido!'),
-                              backgroundColor: Colors.blue,
-                            ),
-                          );
-                        },
-                        child: const Text('Confirmar'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.read<OrcamentoService>().setAcrescimo(controller.text);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Código AC atualizado!'), // Mensagem ajustada
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
         );
       },
     );
   }
 
+  // Removido o callback _handleLoginSuccess, pois não é mais a tela inicial
+
   @override
   Widget build(BuildContext context) {
+    // Não há mais verificação de login aqui. O app começa diretamente no menu.
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      // Mantido como false para que o teclado flutue sobre o conteúdo principal
+      resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
           Row(
@@ -161,7 +143,7 @@ class _TelaMenuState extends State<TelaMenu> {
               ),
             ],
           ),
-          // --- BOTÃO SECRETO ADICIONADO ---
+          // O botão de engrenagem continua aqui.
           Positioned(
             top: 10,
             right: 10,
@@ -176,6 +158,7 @@ class _TelaMenuState extends State<TelaMenu> {
     );
   }
 
+  // Widget helper para construir os botões do menu
   Widget _buildBotaoMenu({required String texto, required int index}) {
     final bool isSelected = _paginaAtual == index;
 
