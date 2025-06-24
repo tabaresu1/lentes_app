@@ -13,6 +13,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  salvarTesteNoFirestore(); // <-- Adicione esta linha para testar
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => OrcamentoService(),

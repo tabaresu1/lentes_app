@@ -174,18 +174,37 @@ class OrcamentoService with ChangeNotifier {
       percentagemDescontoAplicada: _descontoAplicado,
     ));
 
-    // GRAVAÇÃO NO FIRESTORE
     if (_usuarioLogado != null) {
       final docRef = FirebaseFirestore.instance
           .collection('usuarios_orcamentos')
           .doc(_usuarioLogado);
 
+      print('Salvando orçamento para usuário: $_usuarioLogado');
+
+      // Salva o orçamento detalhado em uma subcoleção "orcamentos"
+      await docRef.collection('orcamentos').add({
+        'itens': _itensFinais.map((item) => {
+          'categoria': item.categoria,
+          'descricao': item.descricao,
+          'preco': item.preco,
+          'precoOriginalItem': item.precoOriginalItem,
+          'percentagemDescontoAplicada': item.percentagemDescontoAplicada,
+        }).toList(),
+        'data': FieldValue.serverTimestamp(),
+        'total': total,
+        'descontoTotal': _descontoAplicado,
+        // Adicione os campos de grau aqui:
+        'esferico': _prescricaoTemp?.esferico,
+        'cilindrico': _prescricaoTemp?.cilindrico,
+      });
+
+      // Atualiza os totais agregados do usuário
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final snapshot = await transaction.get(docRef);
+        final docSnapshot = await transaction.get(docRef);
         final double valorOrcamento = opcaoFinal.precoComDesconto;
 
-        if (snapshot.exists) {
-          final data = snapshot.data()!;
+        if (docSnapshot.exists) {
+          final data = docSnapshot.data()!;
           final totalAnterior = (data['total_orcamentos'] ?? 0) as int;
           final valorAnterior = (data['valor_total'] ?? 0.0) as num;
 
@@ -219,5 +238,21 @@ class OrcamentoService with ChangeNotifier {
   void setUsuarioLogado(String username) {
     _usuarioLogado = username;
     notifyListeners();
+    // Remova todo o código que acessa o Firestore aqui!
+  }
+
+  Future<void> calcularMediaOrcamento(String usuario) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('usuarios_orcamentos')
+        .doc(usuario)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      final total = (data['total_orcamentos'] ?? 0) as int;
+      final valor = (data['valor_total'] ?? 0.0) as num;
+      final media = total > 0 ? valor / total : 0.0;
+      print('Valor médio: R\$ ${media.toStringAsFixed(2)}');
+    }
   }
 }

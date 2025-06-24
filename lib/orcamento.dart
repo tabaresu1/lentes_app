@@ -287,10 +287,21 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
           height: 50,
           child: ElevatedButton(
             child: const Text('Confirmar e Adicionar ao Orçamento'),
-            onPressed: _opcaoSelecionada == null ? null : () {
-              context.read<OrcamentoService>().finalizarOrcamento(_opcaoSelecionada!);
-              _opcaoSelecionada = null;
-            },
+            onPressed: _opcaoSelecionada == null
+                ? null
+                : () async {
+                    await context.read<OrcamentoService>().finalizarOrcamento(_opcaoSelecionada!);
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Orçamento finalizado e salvo no Firestore!')),
+                      );
+                    }
+
+                    setState(() {
+                      _opcaoSelecionada = null;
+                    });
+                  },
           ),
         )
       ],
