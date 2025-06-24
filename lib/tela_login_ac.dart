@@ -25,41 +25,26 @@ class _TelaLoginACState extends State<TelaLoginAC> {
   ];
 
   void _performLogin() async {
-    // Esconder teclado
-    FocusScope.of(context).unfocus();
+    setState(() => _isLoading = true);
 
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
-
-    final String username = _usernameController.text.trim().toUpperCase();
-    final String acCode = _acCodeController.text.trim();
+    final username = _usernameController.text.trim().toUpperCase();
+    final acCode = _acCodeController.text.trim();
 
     if (username.isEmpty) {
-      if (!mounted) return;
       _showSnackBar('Por favor, insira o nome de usuário.', Colors.red);
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       return;
     }
 
     if (!USUARIOS_ACEITOS.contains(username)) {
-      if (!mounted) return;
       _showSnackBar('Nome de usuário inválido.', Colors.red);
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       return;
     }
 
     if (acCode.isEmpty) {
-      if (!mounted) return;
       _showSnackBar('Por favor, insira o Código AC.', Colors.red);
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       return;
     }
 
@@ -67,23 +52,22 @@ class _TelaLoginACState extends State<TelaLoginAC> {
 
     if (!mounted) return;
 
+    // Salva o usuário logado no service!
+    print('Chamando setUsuarioLogado com: $username');
+    context.read<OrcamentoService>().setUsuarioLogado(username);
+
     context.read<OrcamentoService>().setAcrescimo(acCode);
 
     final bool acCodeSuccessfullySet = context.read<OrcamentoService>().isAcCodeSetForCurrentSession;
 
-    if (!mounted) return;
-
     if (acCodeSuccessfullySet) {
       _showSnackBar('Login AC realizado com sucesso!', Colors.green);
-      // Aqui pode disparar alguma ação extra, se quiser
+      // Navegue para a próxima tela, se necessário
     } else {
       _showSnackBar('Código AC inválido. Acréscimo não aplicado.', Colors.orange);
     }
 
-    if (!mounted) return;
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   void _showSnackBar(String message, Color color) {

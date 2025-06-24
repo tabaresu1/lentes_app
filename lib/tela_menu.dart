@@ -17,7 +17,7 @@ class TelaMenu extends StatefulWidget {
 }
 
 class _TelaMenuState extends State<TelaMenu> {
-  int _paginaAtual = 0;
+  int _paginaAtual = 1;
 
   @override
   void initState() {

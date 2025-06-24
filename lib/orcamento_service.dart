@@ -56,6 +56,10 @@ class OrcamentoItem {
   final double preco;
   final double precoOriginalItem;
   final double percentagemDescontoAplicada;
+  final String tipoArmacao;
+  final double esferico;
+  final double cilindrico;
+  final String tipoLente;
 
   OrcamentoItem({
     required this.categoria,
@@ -63,6 +67,10 @@ class OrcamentoItem {
     required this.preco,
     required this.precoOriginalItem,
     required this.percentagemDescontoAplicada,
+    required this.tipoArmacao,
+    required this.esferico,
+    required this.cilindrico,
+    required this.tipoLente,
   });
 }
 
@@ -75,7 +83,7 @@ class OrcamentoService with ChangeNotifier {
   double _descontoAplicado = 0.0;
   bool _isAcCodeSetForCurrentSession = false;
 
-  String? _usuarioLogado; // NOVO: Nome do usuário (REI.VENDAS1, etc.)
+  String? _usuarioLogado;
 
   List<OrcamentoItem> get itensFinais => _itensFinais;
   bool get temPrescricaoPendente => _prescricaoTemp != null;
@@ -83,6 +91,7 @@ class OrcamentoService with ChangeNotifier {
   Set<String> get codigosDescontoAplicados => Set.from(_codigosDescontoAplicados);
   bool get isAcCodeSetForCurrentSession => _isAcCodeSetForCurrentSession;
   String? get usuarioLogado => _usuarioLogado;
+  PrescricaoTemporaria? get prescricaoTemp => _prescricaoTemp;
 
   double get total {
     if (_itensFinais.isEmpty) return 0.0;
@@ -165,16 +174,28 @@ class OrcamentoService with ChangeNotifier {
   }
 
   Future<void> finalizarOrcamento(OpcaoLenteCalculada opcaoFinal) async {
-    _itensFinais.clear();
-    _itensFinais.add(OrcamentoItem(
-      categoria: "Lente e Tratamentos",
-      descricao: opcaoFinal.descricao,
-      preco: opcaoFinal.precoComDesconto,
-      precoOriginalItem: opcaoFinal.precoOriginal,
-      percentagemDescontoAplicada: _descontoAplicado,
-    ));
+    print('Usuário logado: $_usuarioLogado');
+    try {
+      if (_usuarioLogado == null || _usuarioLogado!.isEmpty) {
+        print('Erro: usuário não logado!');
+        return;
+      }
 
-    if (_usuarioLogado != null) {
+      // 1. Crie o item normalmente
+      _itensFinais.clear();
+      _itensFinais.add(OrcamentoItem(
+        categoria: "Lente e Tratamentos",
+        descricao: opcaoFinal.descricao,
+        preco: opcaoFinal.precoComDesconto,
+        precoOriginalItem: opcaoFinal.precoOriginal,
+        percentagemDescontoAplicada: _descontoAplicado,
+        tipoArmacao: _prescricaoTemp?.tipoArmacao.toString().split('.').last ?? '',
+        esferico: _prescricaoTemp?.esferico ?? 0.0,
+        cilindrico: _prescricaoTemp?.cilindrico ?? 0.0,
+        tipoLente: _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- Adicionado aqui
+      ));
+
+      // 2. Depois, salve no Firestore (adicione o campo acUtilizado normalmente)
       final docRef = FirebaseFirestore.instance
           .collection('usuarios_orcamentos')
           .doc(_usuarioLogado);
@@ -186,16 +207,23 @@ class OrcamentoService with ChangeNotifier {
         'itens': _itensFinais.map((item) => {
           'categoria': item.categoria,
           'descricao': item.descricao,
-          'preco': item.preco,
-          'precoOriginalItem': item.precoOriginalItem,
-          'percentagemDescontoAplicada': item.percentagemDescontoAplicada,
+          'preco': arredondar2(item.preco),
+          'precoOriginalItem': arredondar2(item.precoOriginalItem),
+          'percentagemDescontoAplicada': arredondar2(item.percentagemDescontoAplicada),
+          'tipoArmacao': item.tipoArmacao,
+          'esferico': item.esferico,
+          'cilindrico': item.cilindrico,
+          'tipoLente': _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- Adicionado aqui
         }).toList(),
+        'acUtilizado': _acrescimoMultiplier,
         'data': FieldValue.serverTimestamp(),
-        'total': total,
-        'descontoTotal': _descontoAplicado,
-        // Adicione os campos de grau aqui:
-        'esferico': _prescricaoTemp?.esferico,
-        'cilindrico': _prescricaoTemp?.cilindrico,
+        'total': arredondar2(total),
+        'descontoTotal': arredondar2(_descontoAplicado),
+        'tipoLenteResumo': _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- E aqui, se quiser
+        // Os campos abaixo são redundantes se já estão em 'itens', mas mantenha se quiser facilitar buscas
+        'esferico': _prescricaoTemp?.esferico != null ? arredondar2(_prescricaoTemp!.esferico) : null,
+        'cilindrico': _prescricaoTemp?.cilindrico != null ? arredondar2(_prescricaoTemp!.cilindrico) : null,
+        'tipoArmacaoResumo': _prescricaoTemp?.tipoArmacao.name, // Renomeado para evitar conflito
       });
 
       // Atualiza os totais agregados do usuário
@@ -210,7 +238,7 @@ class OrcamentoService with ChangeNotifier {
 
           transaction.update(docRef, {
             'total_orcamentos': totalAnterior + 1,
-            'valor_total': valorAnterior + valorOrcamento,
+            'valor_total': arredondar2(valorAnterior + valorOrcamento),
           });
         } else {
           transaction.set(docRef, {
@@ -219,12 +247,16 @@ class OrcamentoService with ChangeNotifier {
           });
         }
       });
-    }
 
-    _prescricaoTemp = null;
-    _descontoAplicado = 0.0;
-    _codigosDescontoAplicados.clear();
-    notifyListeners();
+      _prescricaoTemp = null;
+      _descontoAplicado = 0.0;
+      _codigosDescontoAplicados.clear();
+      notifyListeners();
+      print('Orçamento salvo com sucesso!');
+    } catch (e, s) {
+      print('Erro ao salvar orçamento: $e');
+      print(s);
+    }
   }
 
   void limparOrcamento() {
@@ -236,9 +268,9 @@ class OrcamentoService with ChangeNotifier {
   }
 
   void setUsuarioLogado(String username) {
+    print('setUsuarioLogado: $username');
     _usuarioLogado = username;
     notifyListeners();
-    // Remova todo o código que acessa o Firestore aqui!
   }
 
   Future<void> calcularMediaOrcamento(String usuario) async {
@@ -256,3 +288,5 @@ class OrcamentoService with ChangeNotifier {
     }
   }
 }
+
+double arredondar2(double valor) => double.parse(valor.toStringAsFixed(2));
