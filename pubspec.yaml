@@ -1,6 +1,6 @@
-name: lentes_app # ou o nome do seu projeto
+name: lentes_app
 description: "Um aplicativo para visualização de lentes ópticas."
-publish_to: 'none' 
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -11,27 +11,28 @@ dependencies:
   flutter:
     sdk: flutter
   
-  provider: ^6.1.2 # Dependência para gestão de estado
+  provider: ^6.1.2
 
-  # --- DEPENDÊNCIAS PARA O PDF E PARTILHA ---
+  # PDF e impressão
   pdf: ^3.10.8
   printing: ^5.11.1
   path_provider: ^2.1.3
 
-
-  # VERSÃO ATUALIZADA
   cupertino_icons: ^1.0.8
+
+  # Firebase Core
+  firebase_core: ^2.27.0
+  cloud_firestore: ^4.17.0
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
-  # VERSÃO ATUALIZADA
   flutter_lints: ^6.0.0
   flutter_launcher_icons: "^0.14.4"
 
 flutter_launcher_icons:
-  android: "launcher_icon" 
+  android: "launcher_icon"
   ios: true
   image_path: "assets/icons/icon.png"
 
@@ -40,8 +41,6 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-  
-  # CORREÇÃO: Adicionada a seção de fontes para resolver o erro de compilação
   fonts:
     - family: Roboto
       fonts:
