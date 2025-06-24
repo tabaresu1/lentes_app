@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 import 'orcamento_service.dart';
 import 'tratamento_lente.dart';
@@ -32,28 +31,10 @@ class _TelaMenuState extends State<TelaMenu> {
     const TelaCampoVisao(),
   ];
 
-  // Função para salvar o clique no Firestore
-  Future<void> salvarCliqueNoFirestore(int index) async {
-    await FirebaseFirestore.instance.collection('cliques_menu').add({
-      'botao_clicado': index,
-      'timestamp': DateTime.now(),
+  void _onPaginaSelecionada(int index) {
+    setState(() {
+      _paginaAtual = index;
     });
-  }
-
-  Future<void> _onPaginaSelecionada(int index) async {
-    // Salva o clique no Firestore
-    await salvarCliqueNoFirestore(index);
-
-    if (index == 3) {
-      final orcamentoService = context.read<OrcamentoService>();
-      setState(() {
-        _paginaAtual = index;
-      });
-    } else {
-      setState(() {
-        _paginaAtual = index;
-      });
-    }
   }
 
   void _mostrarDialogoAC(BuildContext context) {

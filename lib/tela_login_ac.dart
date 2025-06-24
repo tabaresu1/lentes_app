@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'orcamento_service.dart'; // Para acessar o setAcrescimo
 
 class TelaLoginAC extends StatefulWidget {
-  // onLoginSuccess removido, pois a notificação é via Provider.
   const TelaLoginAC({Key? key}) : super(key: key);
 
   @override
@@ -16,7 +15,6 @@ class _TelaLoginACState extends State<TelaLoginAC> {
   final TextEditingController _acCodeController = TextEditingController();
   bool _isLoading = false;
 
-  // Lista de usuários aceitos para padronização
   static const List<String> USUARIOS_ACEITOS = [
     'REI.VENDAS1',
     'REI.VENDAS2',
@@ -24,13 +22,13 @@ class _TelaLoginACState extends State<TelaLoginAC> {
     'POP.VENDAS1',
     'POP.VENDAS2',
     'POP.VENDAS3',
-    // Adicione mais nomes de usuários aqui, em MAIÚSCULAS
-  ]; 
+  ];
 
   void _performLogin() async {
-    // Esconder o teclado antes de prosseguir
+    // Esconder teclado
     FocusScope.of(context).unfocus();
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -38,52 +36,58 @@ class _TelaLoginACState extends State<TelaLoginAC> {
     final String username = _usernameController.text.trim().toUpperCase();
     final String acCode = _acCodeController.text.trim();
 
-    // Validação do nome de usuário
     if (username.isEmpty) {
-      if (!mounted) return; // Verifica se o widget ainda está montado
+      if (!mounted) return;
       _showSnackBar('Por favor, insira o nome de usuário.', Colors.red);
-      setState(() { _isLoading = false; });
-      return;
-    }
-    if (!USUARIOS_ACEITOS.contains(username)) { 
-      if (!mounted) return; // Verifica se o widget ainda está montado
-      _showSnackBar('Nome de usuário inválido.', Colors.red);
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
-    // Validação do Código AC (senha)
-    if (acCode.isEmpty) {
-      if (!mounted) return; // Verifica se o widget ainda está montado
-      _showSnackBar('Por favor, insira o Código AC.', Colors.red);
-      setState(() { _isLoading = false; });
+    if (!USUARIOS_ACEITOS.contains(username)) {
+      if (!mounted) return;
+      _showSnackBar('Nome de usuário inválido.', Colors.red);
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
-    
-    // Chama o setAcrescimo do OrcamentoService para "validar" e aplicar o AC
+
+    if (acCode.isEmpty) {
+      if (!mounted) return;
+      _showSnackBar('Por favor, insira o Código AC.', Colors.red);
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
     context.read<OrcamentoService>().setAcrescimo(acCode);
 
-    await Future.delayed(const Duration(seconds: 1)); 
-
-    // Verifica se o widget ainda está montado ANTES de interagir com o estado ou context
-    if (!mounted) return; 
-
     final bool acCodeSuccessfullySet = context.read<OrcamentoService>().isAcCodeSetForCurrentSession;
+
+    if (!mounted) return;
+
     if (acCodeSuccessfullySet) {
       _showSnackBar('Login AC realizado com sucesso!', Colors.green);
-      // Não é mais necessário um callback 'onLoginSuccess' para a tela pai diretamente.
-      // A TelaMenu agora observará o OrcamentoService para mudar de tela.
+      // Aqui pode disparar alguma ação extra, se quiser
     } else {
       _showSnackBar('Código AC inválido. Acréscimo não aplicado.', Colors.orange);
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
   }
 
   void _showSnackBar(String message, Color color) {
-    if (!mounted) return; // Verifica se o widget ainda está montado antes de mostrar SnackBar
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -102,8 +106,8 @@ class _TelaLoginACState extends State<TelaLoginAC> {
 
   @override
   Widget build(BuildContext context) {
-    return Center( // Conteúdo da tela de login, sem Scaffold, para ser usado no IndexedStack
-      child: SingleChildScrollView( // Permite rolar se o teclado aparecer
+    return Center(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -126,7 +130,6 @@ class _TelaLoginACState extends State<TelaLoginAC> {
               ),
             ),
             const SizedBox(height: 60),
-
             SizedBox(
               width: 300,
               child: TextField(
@@ -150,7 +153,6 @@ class _TelaLoginACState extends State<TelaLoginAC> {
               ),
             ),
             const SizedBox(height: 16),
-
             SizedBox(
               width: 300,
               child: TextField(
@@ -177,7 +179,6 @@ class _TelaLoginACState extends State<TelaLoginAC> {
               ),
             ),
             const SizedBox(height: 30),
-
             SizedBox(
               width: 300,
               height: 50,
