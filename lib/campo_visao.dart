@@ -10,14 +10,15 @@ enum CampoVisaoSimulacao {
   bifocal, 
   multifocal, // Agora serve como "abrir submenu"
   // Opções para cada porcentagem de campo de visão
-  p40, p50, p67, p87, p98,
+  p40, p50, p67, p87, p98, // Adicionado p80
   todos // Para mostrar todos os campos de visão juntos
 }
 
 enum CampoVisaoPercentagem {
-  p40, p50, p67, p87, p98
-}
 
+  p40, p50, p67, p87, p98
+
+}
 class TelaCampoVisao extends StatefulWidget {
   const TelaCampoVisao({super.key});
 
@@ -48,7 +49,7 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
       'contras': 'Ainda possui distorções laterais; Transição menos fluida que campos maiores.',
     },
     CampoVisaoPercentagem.p67: {
-      'titulo': 'Campo de Visão 67%',
+      'titulo': 'Campo de Visao 67%',
       'descricao': 'Representa um campo de visão intermediário a avançado, com uma redução significativa das distorções laterais. Proporciona uma transição mais confortável entre as diferentes distâncias.',
       'pros': 'Melhor conforto visual e adaptação; Menor distorção lateral.',
       'contras': 'Pode exigir um breve período de adaptação para alguns usuários.',
@@ -137,8 +138,8 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
                     textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () => setState(() {
-                    _selecaoAtual = _mapPercentagemEnumToSimulacao(percentagemEnum);
-                    _percentagemAtualEnum = percentagemEnum;
+                    _selecaoAtual = _mapPercentagemEnumToSimulacao(percentagemEnum); // Mapeia o enum para a seleção
+                    _percentagemAtualEnum = percentagemEnum; // Armazena a porcentagem real selecionada
                     _isDescricaoVisivel = false;
                   }),
                   child: Text(percentagemStr),
@@ -169,14 +170,18 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
 
   // Helper para mapear CampoVisaoPercentagem para CampoVisaoSimulacao
   CampoVisaoSimulacao _mapPercentagemEnumToSimulacao(CampoVisaoPercentagem percentagemEnum) {
-  switch (percentagemEnum) {
-    case CampoVisaoPercentagem.p40: return CampoVisaoSimulacao.p40;
-    case CampoVisaoPercentagem.p50: return CampoVisaoSimulacao.p50;
-    case CampoVisaoPercentagem.p67: return CampoVisaoSimulacao.p67;
-    case CampoVisaoPercentagem.p87: return CampoVisaoSimulacao.p87;
-    case CampoVisaoPercentagem.p98: return CampoVisaoSimulacao.p98;
+    switch (percentagemEnum) {
+      case CampoVisaoPercentagem.p40: return CampoVisaoSimulacao.p40;
+      case CampoVisaoPercentagem.p50: return CampoVisaoSimulacao.p50;
+      case CampoVisaoPercentagem.p67: return CampoVisaoSimulacao.p67;
+      // case CampoVisaoPercentagem.p80: return CampoVisaoSimulacao.p80; // Adicionado p80
+      case CampoVisaoPercentagem.p87: return CampoVisaoSimulacao.p87;
+      case CampoVisaoPercentagem.p98: return CampoVisaoSimulacao.p98;
+    }
+    // Adicionado um return padrão para cobrir todos os casos.
+    // Isso deve ser unreachable se todos os enums forem mapeados.
+    return CampoVisaoSimulacao.nenhum; // Ou lance um erro, dependendo da sua estratégia
   }
-}
 
   // Helper para criar os botões de tipo de lente
   Widget _buildBotaoTipoLente({required String texto, required CampoVisaoSimulacao tipo}) {
@@ -195,6 +200,7 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
       child: Text(texto),
     );
   }
+
 
   // Novo widget para a descrição, mais detalhado
   Widget _buildDescricaoDetalhada() {
@@ -293,18 +299,21 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
 
   // Widget que constrói a área de simulação
   Widget _buildAreaSimulacao() {
-    const Map<CampoVisaoSimulacao, String> overlays = {
-      CampoVisaoSimulacao.monofocal: 'assets/images/monofocal_overlay.png',
-      CampoVisaoSimulacao.bifocal: 'assets/images/bifocal_overlay.png',
-      CampoVisaoSimulacao.multifocal: 'assets/images/multifocal_overlay.png',
+    // Imagens para Monofocal, Bifocal, Multifocal (genérico)
+    const Map<CampoVisaoSimulacao, String> tipoLenteImages = {
+      CampoVisaoSimulacao.monofocal: 'assets/images/monofocal.jpg', // Nova imagem completa
+      CampoVisaoSimulacao.bifocal: 'assets/images/bifocal.jpg',   // Nova imagem completa
+      // Multifocal (genérico) não terá uma imagem aqui, pois vai para o submenu
+      // CampoVisaoSimulacao.multifocal: 'assets/images/multifocal_completo.jpg', // Removido ou usado para um visual genérico
     };
     
+    // Mapeamento de imagens para cada porcentagem de campo de visão
     final Map<CampoVisaoPercentagem, String> campoVisaoImages = {
-      CampoVisaoPercentagem.p40: 'assets/images/campo_visao_40_exemplo.jpg',
-      CampoVisaoPercentagem.p50: 'assets/images/campo_visao_50_exemplo.jpg',
-      CampoVisaoPercentagem.p67: 'assets/images/campo_visao_67_exemplo.jpg',
-      CampoVisaoPercentagem.p87: 'assets/images/campo_visao_87_exemplo.jpg',
-      CampoVisaoPercentagem.p98: 'assets/images/campo_visao_98_exemplo.jpg',
+      CampoVisaoPercentagem.p40: 'assets/images/campo_visao_40.jpg',
+      CampoVisaoPercentagem.p50: 'assets/images/campo_visao_50.jpg',
+      CampoVisaoPercentagem.p67: 'assets/images/campo_visao_67.jpg',
+      CampoVisaoPercentagem.p87: 'assets/images/campo_visao_87.jpg',
+      CampoVisaoPercentagem.p98: 'assets/images/campo_visao_98.jpg',
     };
     
     const String imagemComparativoGeral = 'assets/images/campo_visao_todos_comparativo.jpg'; 
@@ -312,25 +321,17 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
     switch (_selecaoAtual) {
       case CampoVisaoSimulacao.monofocal:
       case CampoVisaoSimulacao.bifocal:
-      case CampoVisaoSimulacao.multifocal: // NOVO: Se Multifocal geral, mostra o submenu
-        if (_selecaoAtual == CampoVisaoSimulacao.multifocal) {
-          return _buildMultifocalSubMenu();
-        }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/cena_ambiente.jpg', // Imagem de fundo genérica
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(color: Colors.red),
-            ),
-            Image.asset(
-              overlays[_selecaoAtual]!,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-            ),
-          ],
+        // Para Monofocal e Bifocal, carregue a imagem completa diretamente
+        String? assetPath = tipoLenteImages[_selecaoAtual];
+        if (assetPath == null) return const Center(child: Text('Imagem não encontrada.', style: TextStyle(color: Colors.red)));
+        return Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(color: Colors.red),
         );
+
+      case CampoVisaoSimulacao.multifocal: // Se Multifocal geral, mostra o submenu
+        return _buildMultifocalSubMenu();
 
       // Casos para cada porcentagem individual
       case CampoVisaoSimulacao.p40:
