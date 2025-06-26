@@ -25,9 +25,9 @@ class TelaTratamentoLente extends StatefulWidget {
 
 class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
   TipoTratamento _tratamentoSelecionado = TipoTratamento.nenhum;
-  double _sliderAntirreflexoValue = 0.5;
+  double _sliderAntirreflexoValue = 0.0; // Initial value for the anti-reflection slider
   double _posicaoLente = 0.25; // Initial position for the photochromic lens
-  double _sliderFiltroAzulValue = 0.5;
+  double _sliderFiltroAzulValue = 0.0; // Initial value for the blue light filter slider
 
   // Builds the menu for selecting lens treatments
   Widget _buildMenuTratamentos() {
@@ -190,10 +190,10 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                Image.asset('assets/images/tela_digital_normal.jpg', fit: BoxFit.cover),
+                Image.asset('assets/images/blue1.jpg', fit: BoxFit.cover),
                 ClipRect(
                   clipper: _ImageRevealClipper(revealPercent: _sliderFiltroAzulValue),
-                  child: Image.asset('assets/images/tela_digital_filtro_azul.jpg', fit: BoxFit.cover),
+                  child: Image.asset('assets/images/blue2.jpg', fit: BoxFit.cover),
                 ),
                 Positioned.fill(
                   child: Align(
