@@ -22,6 +22,7 @@ class OpcaoLenteCalculada {
   final String descricao;
   final double precoOriginal;
   final double precoComDesconto;
+  final double precoBase;
   final String? status;
   final CampoVisaoPercentagem? campoVisao;
 
@@ -29,25 +30,24 @@ class OpcaoLenteCalculada {
     required this.descricao,
     required this.precoOriginal,
     required this.precoComDesconto,
+    required this.precoBase,
     this.status,
     this.campoVisao,
   });
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-    return other is OpcaoLenteCalculada &&
-        other.descricao == descricao &&
-        other.precoOriginal == precoOriginal &&
-        other.precoComDesconto == precoComDesconto &&
-        other.status == status &&
-        other.campoVisao == campoVisao;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OpcaoLenteCalculada &&
+          descricao == other.descricao &&
+          precoOriginal == other.precoOriginal &&
+          precoComDesconto == other.precoComDesconto &&
+          status == other.status &&
+          campoVisao == other.campoVisao;
 
   @override
-  int get hashCode =>
-      Object.hash(descricao, precoOriginal, precoComDesconto, status, campoVisao);
+  int get hashCode => Object.hash(
+      descricao, precoOriginal, precoComDesconto, status, campoVisao);
 }
 
 class OrcamentoItem {
@@ -88,14 +88,20 @@ class OrcamentoService with ChangeNotifier {
   List<OrcamentoItem> get itensFinais => _itensFinais;
   bool get temPrescricaoPendente => _prescricaoTemp != null;
   double get descontoAplicado => _descontoAplicado;
-  Set<String> get codigosDescontoAplicados => Set.from(_codigosDescontoAplicados);
+  Set<String> get codigosDescontoAplicados =>
+      Set<String>.from(_codigosDescontoAplicados);
   bool get isAcCodeSetForCurrentSession => _isAcCodeSetForCurrentSession;
   String? get usuarioLogado => _usuarioLogado;
   PrescricaoTemporaria? get prescricaoTemp => _prescricaoTemp;
 
-  double get total {
-    if (_itensFinais.isEmpty) return 0.0;
-    return _itensFinais.map((item) => item.preco).reduce((a, b) => a + b);
+  double get total => _itensFinais.isEmpty
+      ? 0.0
+      : _itensFinais.map((e) => e.preco).reduce((a, b) => a + b);
+
+  // Setter adicionado
+  set descontoAplicado(double valor) {
+    _descontoAplicado = valor;
+    notifyListeners();
   }
 
   void setAcrescimo(String codigoAC) {
@@ -115,20 +121,61 @@ class OrcamentoService with ChangeNotifier {
     notifyListeners();
   }
 
-  ResultadoDesconto aplicarDesconto(String codigo) {
-    final resultado = DescontoService.aplicarCodigo(
-        codigo, _descontoAplicado, _codigosDescontoAplicados);
-    if (resultado.valido) {
-      _descontoAplicado += resultado.percentagem;
-      _codigosDescontoAplicados.add(codigo.toUpperCase());
+  ResultadoDesconto aplicarDesconto({
+    required String codigo,
+    required double descontoPercentual,
+    required double precoOriginal,
+    required double precoBase,
+  }) {
+    if (codigo.trim().isEmpty || descontoPercentual <= 0.0) {
+      return ResultadoDesconto(
+        valido: false,
+        mensagem: 'Preencha a senha e o percentual de desconto.',
+      );
     }
+
+    if (descontoPercentual < 0.0 || descontoPercentual > 100.0) {
+      return ResultadoDesconto(
+        valido: false,
+        mensagem: 'O percentual deve ser entre 1 e 100.',
+      );
+    }
+
+    final precoMinimoPermitido = precoBase * 0.75;
+    final precoComDesconto =
+        precoOriginal * (1 - (descontoPercentual / 100.0));
+
+    if (precoComDesconto < precoMinimoPermitido) {
+      return ResultadoDesconto(
+        valido: false,
+        mensagem: 'Desconto não liberado pelo sistema.',
+      );
+    }
+
+    final resultado = DescontoService.aplicarCodigo(
+      codigo,
+      0.0,
+      {},
+      percentualDigitado: descontoPercentual,
+    );
+
+    if (resultado.valido) {
+      _descontoAplicado = resultado.percentagem;
+    }
+
     notifyListeners();
     return resultado;
+  }
+
+  void aplicarDescontoPercentual(double percentual) {
+    _descontoAplicado = percentual / 100.0;
+    notifyListeners();
   }
 
   void salvarPrescricao(PrescricaoTemporaria prescricao) {
     _prescricaoTemp = prescricao;
     _isAcCodeSetForCurrentSession = false;
+    _descontoAplicado = 0.0;
     notifyListeners();
   }
 
@@ -142,121 +189,99 @@ class OrcamentoService with ChangeNotifier {
       tipoLente: _prescricaoTemp!.tipoLente,
     );
 
-    List<OpcaoLenteCalculada> opcoes = [];
+    return regras.expand((regra) {
+      return regra.precos.entries.map((entry) {
+        final precoBase = entry.value;
+        final precoComAcrescimo = regra.status == 'nao_recomendado'
+            ? precoBase
+            : precoBase * _acrescimoMultiplier;
 
-    for (var regra in regras) {
-      if (regra.status == 'nao_recomendado') {
-        opcoes.add(OpcaoLenteCalculada(
-          descricao: "${regra.lente} ${regra.observacao}",
-          precoOriginal: 0,
-          precoComDesconto: 0,
-          status: 'nao_recomendado',
+        final precoFinalComDesconto =
+            precoComAcrescimo * (1 - _descontoAplicado);
+
+        return OpcaoLenteCalculada(
+          descricao: "${regra.lente} ${regra.observacao} | ${entry.key}",
+          precoOriginal: precoComAcrescimo,
+          precoComDesconto: precoFinalComDesconto,
+          precoBase: precoBase,
+          status: regra.status,
           campoVisao: regra.campoVisao,
-        ));
-      } else {
-        regra.precos.forEach((tratamento, precoBase) {
-          final precoAposAcrescimo = precoBase * _acrescimoMultiplier;
-          final precoFinalComDesconto =
-              precoAposAcrescimo * (1 - _descontoAplicado);
-
-          opcoes.add(OpcaoLenteCalculada(
-            descricao: "${regra.lente} ${regra.observacao} | $tratamento",
-            precoOriginal: precoAposAcrescimo,
-            precoComDesconto: precoFinalComDesconto,
-            status: regra.status,
-            campoVisao: regra.campoVisao,
-          ));
-        });
-      }
-    }
-
-    return opcoes;
+        );
+      });
+    }).toList();
   }
 
   Future<void> finalizarOrcamento(OpcaoLenteCalculada opcaoFinal) async {
-    print('Usuário logado: $_usuarioLogado');
-    try {
-      if (_usuarioLogado == null || _usuarioLogado!.isEmpty) {
-        print('Erro: usuário não logado!');
-        return;
-      }
-
-      // 1. Crie o item normalmente
-      _itensFinais.clear();
-      _itensFinais.add(OrcamentoItem(
-        categoria: "Lente e Tratamentos",
-        descricao: opcaoFinal.descricao,
-        preco: opcaoFinal.precoComDesconto,
-        precoOriginalItem: opcaoFinal.precoOriginal,
-        percentagemDescontoAplicada: _descontoAplicado,
-        tipoArmacao: _prescricaoTemp?.tipoArmacao.toString().split('.').last ?? '',
-        esferico: _prescricaoTemp?.esferico ?? 0.0,
-        cilindrico: _prescricaoTemp?.cilindrico ?? 0.0,
-        tipoLente: _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- Adicionado aqui
-      ));
-
-      // 2. Depois, salve no Firestore (adicione o campo acUtilizado normalmente)
-      final docRef = FirebaseFirestore.instance
-          .collection('usuarios_orcamentos')
-          .doc(_usuarioLogado);
-
-      print('Salvando orçamento para usuário: $_usuarioLogado');
-
-      // Salva o orçamento detalhado em uma subcoleção "orcamentos"
-      await docRef.collection('orcamentos').add({
-        'itens': _itensFinais.map((item) => {
-          'categoria': item.categoria,
-          'descricao': item.descricao,
-          'preco': arredondar2(item.preco),
-          'precoOriginalItem': arredondar2(item.precoOriginalItem),
-          'percentagemDescontoAplicada': arredondar2(item.percentagemDescontoAplicada),
-          'tipoArmacao': item.tipoArmacao,
-          'esferico': item.esferico,
-          'cilindrico': item.cilindrico,
-          'tipoLente': _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- Adicionado aqui
-        }).toList(),
-        'acUtilizado': _acrescimoMultiplier,
-        'data': FieldValue.serverTimestamp(),
-        'total': arredondar2(total),
-        'descontoTotal': arredondar2(_descontoAplicado),
-        'tipoLenteResumo': _prescricaoTemp?.tipoLente.toString().split('.').last ?? '', // <-- E aqui, se quiser
-        // Os campos abaixo são redundantes se já estão em 'itens', mas mantenha se quiser facilitar buscas
-        'esferico': _prescricaoTemp?.esferico != null ? arredondar2(_prescricaoTemp!.esferico) : null,
-        'cilindrico': _prescricaoTemp?.cilindrico != null ? arredondar2(_prescricaoTemp!.cilindrico) : null,
-        'tipoArmacaoResumo': _prescricaoTemp?.tipoArmacao.name, // Renomeado para evitar conflito
-      });
-
-      // Atualiza os totais agregados do usuário
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final docSnapshot = await transaction.get(docRef);
-        final double valorOrcamento = opcaoFinal.precoComDesconto;
-
-        if (docSnapshot.exists) {
-          final data = docSnapshot.data()!;
-          final totalAnterior = (data['total_orcamentos'] ?? 0) as int;
-          final valorAnterior = (data['valor_total'] ?? 0.0) as num;
-
-          transaction.update(docRef, {
-            'total_orcamentos': totalAnterior + 1,
-            'valor_total': arredondar2(valorAnterior + valorOrcamento),
-          });
-        } else {
-          transaction.set(docRef, {
-            'total_orcamentos': 1,
-            'valor_total': valorOrcamento,
-          });
-        }
-      });
-
-      _prescricaoTemp = null;
-      _descontoAplicado = 0.0;
-      _codigosDescontoAplicados.clear();
-      notifyListeners();
-      print('Orçamento salvo com sucesso!');
-    } catch (e, s) {
-      print('Erro ao salvar orçamento: $e');
-      print(s);
+    if (_usuarioLogado == null || _usuarioLogado!.isEmpty) {
+      print('Erro: usuário não logado!');
+      return;
     }
+
+    _itensFinais.clear();
+    _itensFinais.add(OrcamentoItem(
+      categoria: "Lente e Tratamentos",
+      descricao: opcaoFinal.descricao,
+      preco: opcaoFinal.precoComDesconto,
+      precoOriginalItem: opcaoFinal.precoOriginal,
+      percentagemDescontoAplicada: _descontoAplicado,
+      tipoArmacao: _prescricaoTemp?.tipoArmacao.name ?? '',
+      esferico: _prescricaoTemp?.esferico ?? 0.0,
+      cilindrico: _prescricaoTemp?.cilindrico ?? 0.0,
+      tipoLente: _prescricaoTemp?.tipoLente.name ?? '',
+    ));
+
+    final docRef = FirebaseFirestore.instance
+        .collection('usuarios_orcamentos')
+        .doc(_usuarioLogado);
+
+    await docRef.collection('orcamentos').add({
+      'itens': _itensFinais.map((item) => {
+            'categoria': item.categoria,
+            'descricao': item.descricao,
+            'preco': arredondar2(item.preco),
+            'precoOriginalItem': arredondar2(item.precoOriginalItem),
+            'percentagemDescontoAplicada':
+                arredondar2(item.percentagemDescontoAplicada),
+            'tipoArmacao': item.tipoArmacao,
+            'esferico': item.esferico,
+            'cilindrico': item.cilindrico,
+            'tipoLente': item.tipoLente,
+          }).toList(),
+      'acUtilizado': _acrescimoMultiplier,
+      'data': FieldValue.serverTimestamp(),
+      'total': arredondar2(total),
+      'descontoTotal': arredondar2(_descontoAplicado),
+      'tipoLenteResumo': _prescricaoTemp?.tipoLente.name ?? '',
+      'esferico': _prescricaoTemp?.esferico,
+      'cilindrico': _prescricaoTemp?.cilindrico,
+      'tipoArmacaoResumo': _prescricaoTemp?.tipoArmacao.name,
+    });
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final docSnapshot = await transaction.get(docRef);
+      final double valorOrcamento = opcaoFinal.precoComDesconto;
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data()!;
+        final totalAnterior = (data['total_orcamentos'] ?? 0) as int;
+        final valorAnterior = (data['valor_total'] ?? 0.0) as num;
+
+        transaction.update(docRef, {
+          'total_orcamentos': totalAnterior + 1,
+          'valor_total': arredondar2(valorAnterior + valorOrcamento),
+        });
+      } else {
+        transaction.set(docRef, {
+          'total_orcamentos': 1,
+          'valor_total': arredondar2(valorOrcamento),
+        });
+      }
+    });
+
+    _prescricaoTemp = null;
+    _descontoAplicado = 0.0;
+    _codigosDescontoAplicados.clear();
+    notifyListeners();
   }
 
   void limparOrcamento() {
@@ -268,8 +293,12 @@ class OrcamentoService with ChangeNotifier {
   }
 
   void setUsuarioLogado(String username) {
-    print('setUsuarioLogado: $username');
     _usuarioLogado = username;
+    notifyListeners();
+  }
+
+  void resetarDesconto() {
+    _descontoAplicado = 0.0;
     notifyListeners();
   }
 
@@ -289,4 +318,5 @@ class OrcamentoService with ChangeNotifier {
   }
 }
 
-double arredondar2(double valor) => double.parse(valor.toStringAsFixed(2));
+double arredondar2(double valor) =>
+    double.parse(valor.toStringAsFixed(2));

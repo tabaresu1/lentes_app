@@ -16,13 +16,13 @@ class PdfGenerator {
     final font = await PdfGoogleFonts.robotoRegular();
     final boldFont = await PdfGoogleFonts.robotoBold();
 
-    // Calcula o valor original total (sem nenhum desconto)
-    double totalOriginal = 0.0;
-    if (orcamento.itensFinais.isNotEmpty) {
-      totalOriginal = orcamento.itensFinais.first.precoOriginalItem;
-    }
+    // Soma o valor original total (antes de descontos)
+    double totalOriginal = orcamento.itensFinais.fold(
+      0.0,
+      (previousValue, item) => previousValue + item.precoOriginalItem,
+    );
 
-    // Calcula o valor total do desconto
+    // Valor total do desconto aplicado
     double valorTotalDesconto = totalOriginal - orcamento.total;
 
     pdf.addPage(
@@ -37,18 +37,25 @@ class PdfGenerator {
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Orçamento - Visão 360', style: pw.TextStyle(font: boldFont, fontSize: 20)),
-                    pw.Text(DateTime.now().toLocal().toString().substring(0, 16)),
+                    pw.Text('Orçamento - Visão 360',
+                        style: pw.TextStyle(font: boldFont, fontSize: 20)),
+                    pw.Text(
+                      DateTime.now()
+                          .toLocal()
+                          .toString()
+                          .substring(0, 16),
+                      style: pw.TextStyle(font: font, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
               pw.Divider(thickness: 2),
               pw.SizedBox(height: 20),
 
-              // Exibe dados da prescrição e armação logo no início do PDF
+              // Dados da prescrição, se houver
               if (orcamento.prescricaoTemp != null) ...[
                 pw.Text(
-                  'Material da armação: ${orcamento.prescricaoTemp!.tipoArmacao.toString().split('.').last}',
+                  'Material da armação: ${orcamento.prescricaoTemp!.tipoArmacao.name.toUpperCase()}',
                   style: pw.TextStyle(font: font, fontSize: 14),
                 ),
                 pw.Text(
@@ -64,6 +71,7 @@ class PdfGenerator {
 
               pw.Text('Itens do Orçamento', style: pw.TextStyle(font: boldFont, fontSize: 16)),
               pw.SizedBox(height: 10),
+
               pw.Table.fromTextArray(
                 headerStyle: pw.TextStyle(font: boldFont),
                 cellAlignment: pw.Alignment.centerLeft,
@@ -73,11 +81,12 @@ class PdfGenerator {
                   item.categoria,
                   item.descricao,
                   'R\$ ${item.precoOriginalItem.toStringAsFixed(2)}',
-                  item.tipoArmacao,
+                  item.tipoArmacao.toUpperCase(),
                   item.esferico.toStringAsFixed(2),
                   item.cilindrico.toStringAsFixed(2),
                 ]).toList(),
               ),
+
               pw.SizedBox(height: 20),
 
               pw.Align(
@@ -100,7 +109,8 @@ class PdfGenerator {
                         children: [
                           pw.Text('Desconto Aplicado:', style: pw.TextStyle(font: font, fontSize: 16)),
                           pw.Text(
-                            '- R\$ ${valorTotalDesconto.toStringAsFixed(2)} (${(orcamento.itensFinais.isNotEmpty ? orcamento.itensFinais.first.percentagemDescontoAplicada * 100 : 0).toStringAsFixed(0)}%)',
+                            '- R\$ ${valorTotalDesconto.toStringAsFixed(2)} '
+                            '(${(orcamento.itensFinais.isNotEmpty ? (orcamento.itensFinais.first.percentagemDescontoAplicada * 100).toStringAsFixed(0) : '0')}%)',
                             style: pw.TextStyle(font: font, fontSize: 16, color: PdfColors.red),
                           ),
                         ],
@@ -110,18 +120,21 @@ class PdfGenerator {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('TOTAL FINAL:', style: pw.TextStyle(font: boldFont, fontSize: 18)),
-                          pw.Text('R\$ ${orcamento.total.toStringAsFixed(2)}', style: pw.TextStyle(font: boldFont, fontSize: 18, color: PdfColors.green)),
+                          pw.Text('R\$ ${orcamento.total.toStringAsFixed(2)}',
+                              style: pw.TextStyle(font: boldFont, fontSize: 18, color: PdfColors.green)),
                         ],
                       ),
-                    ]
-                  )
-                )
+                    ],
+                  ),
+                ),
               ),
+
               pw.Spacer(),
 
               pw.Divider(),
-              pw.Text('Obrigado pela preferência! Este orçamento é válido por 30 dias.'),
-            ]
+              pw.Text('Obrigado pela preferência! Este orçamento é válido por 30 dias.',
+                style: pw.TextStyle(font: font, fontSize: 12)),
+            ],
           );
         },
       ),

@@ -44,16 +44,17 @@ class _TelaMenuState extends State<TelaMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Inserir/Atualizar Código AC'),
+          title: const Text('Atualizar Usuário'),
           content: TextField(
             controller: controller,
             decoration: const InputDecoration(
-              labelText: 'Código AC',
+              labelText: 'Senha',
               border: OutlineInputBorder(),
               floatingLabelBehavior: FloatingLabelBehavior.always,
             ),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            obscureText: true,
           ),
           actions: [
             TextButton(

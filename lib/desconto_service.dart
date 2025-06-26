@@ -17,50 +17,29 @@ class ResultadoDesconto {
 
 // Classe que gere todos os códigos de desconto
 class DescontoService {
-  // Mapa de códigos válidos e as suas percentagens
-  static final Map<String, double> _codigosValidos = {
-    'VISAO5': 0.05,    // 5%
-    'OTICA7': 0.07,    // 7%
-    'LENTE6': 0.06,    // 6%
-    'CUIDAR8': 0.08,   // 8%
-    'OCULOS10': 0.10,  // 10%
-    'APP7': 0.07,      // 7%
-    'NOVO6': 0.06,     // 6%
-    'MAIS9': 0.09,     // 9%
-    'LEVE5': 0.05,     // 5%
-    'BRILHO10': 0.10,  // 10%
-  };
-
-  // Lista de códigos que existem mas não funcionam (ajustada)
-  static const List<String> _codigosInvalidos = [
-    'GERENTE15',   // Mantido conforme sua solicitação
-    'NOVO5',       // Código inválido
-    'CUPOM7',      // Código inválido
-    'OCULOS8',     // Código inválido
-    'LENTES10',    // Código inválido
-    'OTICA6',      // Código inválido
-    'APP9',        // Código inválido
-    'MAIS5',       // Código inválido
-    'ONLINE7',     // Código inválido
-    'CUIDAR6',     // Código inválido
-    'FLASH10',     // Código inválido
-  ];
+  static const String senhaValida = 'VENDA';
+  static const String senhaInvalida = 'SEMVENDA';
 
   // Função principal para aplicar um código
-  static ResultadoDesconto aplicarCodigo(String codigo, double descontoAtual, Set<String> codigosJaAplicados) {
+  static ResultadoDesconto aplicarCodigo(
+    String codigo,
+    double descontoAtual,
+    Set<String> codigosJaAplicados, {
+    double? percentualDigitado,
+  }) {
     final codigoUpper = codigo.toUpperCase();
 
-    // Primeiro, verifica se o código já foi aplicado
-    if (codigosJaAplicados.contains(codigoUpper)) {
+    // Não permite campo de senha vazio
+    if (codigoUpper.isEmpty) {
       return ResultadoDesconto(
         valido: false,
-        mensagem: 'Este código já foi aplicado!',
-        codigoJaAplicado: true,
+        mensagem: 'Digite a senha para aplicar o desconto.',
       );
     }
 
-    if (_codigosValidos.containsKey(codigoUpper)) {
-      final novoDesconto = _codigosValidos[codigoUpper]!;
+
+    if (codigoUpper == senhaValida) {
+      final novoDesconto = (percentualDigitado ?? 0.0) / 100.0;
       // Verifica se o novo desconto ultrapassa o limite de 25%
       if ((descontoAtual + novoDesconto) > 0.25) {
         return ResultadoDesconto(
@@ -75,7 +54,7 @@ class DescontoService {
       );
     }
 
-    if (_codigosInvalidos.contains(codigoUpper)) {
+    if (codigoUpper == senhaInvalida) {
       return ResultadoDesconto(
         valido: false,
         mensagem: 'Sistema não liberou este cupom.',

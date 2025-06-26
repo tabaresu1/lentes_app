@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'orcamento_service.dart';
 import 'orcamento.dart';
+import 'dart:math'; // Adicione este import no topo do arquivo (já está no seu código)
 
 // Enums e classe LentePainter permanecem os mesmos...
 enum TelaEspessuraOpcao { menu, calculadora, comparativo }
@@ -49,19 +50,24 @@ class _TelaEspessuraState extends State<TelaEspessura> {
   double _indiceEsquerda = 1.50;
   double _indiceDireita = 1.67;
   final Map<String, double> _opcoesLentes = {
-    '1.50': 1.50, '1.59': 1.59, '1.67': 1.67, '1.74': 1.74,
+    '1.56': 1.56,
+    '1.59': 1.59,
+    '1.61': 1.61,
+    '1.67': 1.67,
+    '1.74': 1.74,
   };
   final _esfericoController = TextEditingController();
   final _cilindricoController = TextEditingController();
-  final _eixoController = TextEditingController();
+  final _adicaoController = TextEditingController();
   TipoLente _tipoLenteSelecionada = TipoLente.simples;
   TipoArmacao _tipoArmacaoSelecionada = TipoArmacao.acetato;
+  double _expoenteExagero = 3.0; // Altere este valor para testar o "exagero" visual
 
   @override
   void dispose() {
     _esfericoController.dispose();
     _cilindricoController.dispose();
-    _eixoController.dispose();
+    _adicaoController.dispose();
     super.dispose();
   }
 
@@ -112,8 +118,7 @@ class _TelaEspessuraState extends State<TelaEspessura> {
               setState(() {
                 _opcaoSelecionada = TelaEspessuraOpcao.menu;
                 _esfericoController.clear();
-                _cilindricoController.clear();
-                _eixoController.clear();
+                _cilindricoController.clear();;
               });
             },
             child: const Icon(Icons.arrow_back, size: 32),
@@ -215,10 +220,29 @@ class _TelaEspessuraState extends State<TelaEspessura> {
     } else {
       espessuraCentro = 0.1 + (grauAbsolutoNormalizado * 0.9);
     }
-    double fatorReducao = 1.50 / currentIndex;
+
+    // Expoente específico para cada índice (você já tinha isso)
+    double expoente;
+    if ((currentIndex - 1.56).abs() < 0.01) {
+      expoente = 6.0;
+    } else if ((currentIndex - 1.59).abs() < 0.01) {
+      expoente = 4.5;
+    } else if ((currentIndex - 1.61).abs() < 0.01) {
+      expoente = 3.0;
+    } else if ((currentIndex - 1.67).abs() < 0.01) {
+      expoente = 2.0;
+    } else {
+      expoente = 1.0; // 1.74
+    }
+
+    // APLICANDO O EXAGERO AQUI:
+    // O fator de redução é elevado a um expoente para exagerar a diferença.
+    // Quanto maior o _expoenteExagero, mais exagerada a diferença.
+    double fatorReducao = pow(1.50 / currentIndex, _expoenteExagero).toDouble(); // Convert to double explicitly
+
     espessuraBorda *= fatorReducao;
     espessuraCentro *= fatorReducao;
-    
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -277,11 +301,27 @@ class _TelaEspessuraState extends State<TelaEspessura> {
                       width: 450,
                       child: Column(
                         children: [
-                          TextField(controller: _esfericoController, decoration: const InputDecoration(labelText: 'Grau Esférico', border: OutlineInputBorder()), keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true), inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.-]'))]),
+                          TextField(
+                            controller: _esfericoController,
+                            decoration: const InputDecoration(labelText: 'Grau Esférico', border: OutlineInputBorder()),
+                            keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.-]'))]
+                          ),
                           const SizedBox(height: 16),
-                          TextField(controller: _cilindricoController, decoration: const InputDecoration(labelText: 'Grau Cilíndrico', border: OutlineInputBorder(), prefixText: '- '), keyboardType: const TextInputType.numberWithOptions(decimal: true), inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]),
+                          TextField(
+                            controller: _cilindricoController,
+                            decoration: const InputDecoration(labelText: 'Grau Cilíndrico', border: OutlineInputBorder(), prefixText: '- '),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+                          ),
                           const SizedBox(height: 16),
-                          TextField(controller: _eixoController, decoration: const InputDecoration(labelText: 'Eixo', border: OutlineInputBorder()), keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+                          if (_tipoLenteSelecionada == TipoLente.multifocal) // Apenas mostra Adição para multifocal
+                            TextField(
+                              controller: _adicaoController,
+                              decoration: const InputDecoration(labelText: 'Adição', border: OutlineInputBorder()),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                            ),
                         ],
                       ),
                     ),
@@ -325,7 +365,7 @@ class _TelaEspessuraState extends State<TelaEspessura> {
             children: values.map((v) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(v.toString().split('.').last.toUpperCase()),
-            )).toList(), // O .toList() estava fora do parêntese do Padding.
+            )).toList(),
           ),
         ),
       ],

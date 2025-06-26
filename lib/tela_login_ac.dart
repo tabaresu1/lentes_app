@@ -43,7 +43,7 @@ class _TelaLoginACState extends State<TelaLoginAC> {
     }
 
     if (acCode.isEmpty) {
-      _showSnackBar('Por favor, insira o Código AC.', Colors.red);
+      _showSnackBar('Por favor, insira senha.', Colors.red);
       setState(() => _isLoading = false);
       return;
     }
@@ -61,10 +61,10 @@ class _TelaLoginACState extends State<TelaLoginAC> {
     final bool acCodeSuccessfullySet = context.read<OrcamentoService>().isAcCodeSetForCurrentSession;
 
     if (acCodeSuccessfullySet) {
-      _showSnackBar('Login AC realizado com sucesso!', Colors.green);
+      _showSnackBar('Login realizado com sucesso!', Colors.green);
       // Navegue para a próxima tela, se necessário
     } else {
-      _showSnackBar('Código AC inválido. Acréscimo não aplicado.', Colors.orange);
+      _showSnackBar('Senha incorreta.', Colors.red);
     }
 
     setState(() => _isLoading = false);
@@ -98,7 +98,7 @@ class _TelaLoginACState extends State<TelaLoginAC> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text(
-              'Login - Código AC',
+              'Login',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -142,7 +142,7 @@ class _TelaLoginACState extends State<TelaLoginAC> {
               child: TextField(
                 controller: _acCodeController,
                 decoration: InputDecoration(
-                  labelText: 'Código AC (Senha)',
+                  labelText: 'Senha',
                   labelStyle: const TextStyle(color: Colors.black54),
                   enabledBorder: OutlineInputBorder(
                     borderSide: const BorderSide(color: Colors.grey, width: 2),

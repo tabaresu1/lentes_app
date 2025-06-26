@@ -75,12 +75,12 @@ class LogicaIndicacao {
           if (cilAbs <= 2.0) {
             if (tipoArmacao == TipoArmacao.acetato) return [RegraIndicacao(lente: "1.61", precos: {"Incolor 2 Camadas": 670, "AR 7 Camadas": 770, "Blue 15": 870, "Blue 25": 1070})];
             if (tipoArmacao == TipoArmacao.metal) return [RegraIndicacao(lente: "1.67", observacao: "(Espessura)", precos: {"Incolor 2 Camadas": 970, "AR 7 Camadas": 1070, "Blue 15": 1470, "Blue 25": 1670})];
-            return [RegraIndicacao(lente: "Poli", precos: {"Incolor 2 Camadas": 470, "AR 7 Camadas": 570, "Blue 15": 770, "Blue 25": 970, "Photo": 1170})];
+            return [RegraIndicacao(lente: "Poli", precos: {"Incolor 2 Camadas": 470, "AR 7 Camadas": 570, "Blue 15": 770, "Blue 25": 970, "Photo": 1170}, status: "atencao")];
           }
           if (cilAbs <= 4.0) { // Cilindrico Extendido
             if (tipoArmacao == TipoArmacao.acetato) return [RegraIndicacao(lente: "1.61", observacao: "Especial", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 770, "Blue 15": 870, "Blue 25": 1070})];
             if (tipoArmacao == TipoArmacao.metal) return [RegraIndicacao(lente: "1.67", observacao: "Especial", precos: {"Incolor 2 Camadas": 970, "AR 7 Camadas": 1170, "Blue 15": 1570, "Blue 25": 1870})];
-            return [RegraIndicacao(lente: "Poli", observacao: "Especial", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070})];
+            return [RegraIndicacao(lente: "Poli", observacao: "Especial", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070}, status: "atencao")];
           }
         }
         // Faixa de -4.25 a -8.00
@@ -96,9 +96,9 @@ class LogicaIndicacao {
           }
           if (cilAbs <= 4.0) {
               return [
-                RegraIndicacao(lente: "1.59", observacao: "(Poli Especial)", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070}),
+                RegraIndicacao(lente: "1.59", observacao: "(Poli Especial)", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070}, status: "nao_recomendado"),
                 RegraIndicacao(lente: "1.67", observacao: "Especial", precos: {"Incolor 2 Camadas": 970, "AR 7 Camadas": 1170, "Blue 15": 1570, "Blue 25": 1870}, status: "atencao"),
-                RegraIndicacao(lente: "1.74", observacao: "Especial", precos: {"Incolor 2 Camadas": 2070, "AR 7 Camadas": 2170}, status: "atencao"),
+                RegraIndicacao(lente: "1.74", observacao: "Especial", precos: {"Incolor 2 Camadas": 2070, "AR 7 Camadas": 2170}),
               ];
           }
         }
@@ -114,9 +114,9 @@ class LogicaIndicacao {
               ];
           } else { // Cilindrico Extendido
               return [
-                RegraIndicacao(lente: "1.59", observacao: "(Poli Especial)", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070}),
+                RegraIndicacao(lente: "1.59", observacao: "(Poli Especial)", precos: {"Incolor 2 Camadas": 570, "AR 7 Camadas": 670, "Blue 15": 870, "Blue 25": 1070}, status: "nao_recomendado"),
                 RegraIndicacao(lente: "1.67", observacao: "Especial", precos: {"Incolor 2 Camadas": 970, "AR 7 Camadas": 1170, "Blue 15": 1570, "Blue 25": 1870}, status: "atencao"),
-                RegraIndicacao(lente: "1.74", observacao: "Especial", precos: {"Incolor 2 Camadas": 2070, "AR 7 Camadas": 2170}, status: "atencao"),
+                RegraIndicacao(lente: "1.74", observacao: "Especial", precos: {"Incolor 2 Camadas": 2070, "AR 7 Camadas": 2170}),
               ];
           }
         }
