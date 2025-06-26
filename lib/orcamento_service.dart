@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
+
 import 'espessura_lente.dart';
 import 'logica_indicacao.dart';
 import 'desconto_service.dart';
@@ -212,11 +214,6 @@ class OrcamentoService with ChangeNotifier {
   }
 
   Future<void> finalizarOrcamento(OpcaoLenteCalculada opcaoFinal) async {
-    if (_usuarioLogado == null || _usuarioLogado!.isEmpty) {
-      print('Erro: usuário não logado!');
-      return;
-    }
-
     _itensFinais.clear();
     _itensFinais.add(OrcamentoItem(
       categoria: "Lente e Tratamentos",
@@ -230,58 +227,80 @@ class OrcamentoService with ChangeNotifier {
       tipoLente: _prescricaoTemp?.tipoLente.name ?? '',
     ));
 
-    final docRef = FirebaseFirestore.instance
-        .collection('usuarios_orcamentos')
-        .doc(_usuarioLogado);
-
-    await docRef.collection('orcamentos').add({
+    // Salva localmente SEMPRE
+    final box = Hive.box('orcamentos_offline');
+    final orcamentoMap = {
       'itens': _itensFinais.map((item) => {
-            'categoria': item.categoria,
-            'descricao': item.descricao,
-            'preco': arredondar2(item.preco),
-            'precoOriginalItem': arredondar2(item.precoOriginalItem),
-            'percentagemDescontoAplicada':
-                arredondar2(item.percentagemDescontoAplicada),
-            'tipoArmacao': item.tipoArmacao,
-            'esferico': item.esferico,
-            'cilindrico': item.cilindrico,
-            'tipoLente': item.tipoLente,
-          }).toList(),
+        'categoria': item.categoria,
+        'descricao': item.descricao,
+        'preco': arredondar2(item.preco),
+        'precoOriginalItem': arredondar2(item.precoOriginalItem),
+        'percentagemDescontoAplicada': arredondar2(item.percentagemDescontoAplicada),
+        'tipoArmacao': item.tipoArmacao,
+        'esferico': item.esferico,
+        'cilindrico': item.cilindrico,
+        'tipoLente': item.tipoLente,
+      }).toList(),
       'acUtilizado': _acrescimoMultiplier,
-      'data': FieldValue.serverTimestamp(),
+      'data': DateTime.now().toIso8601String(),
       'total': arredondar2(total),
       'descontoTotal': arredondar2(_descontoAplicado),
       'tipoLenteResumo': _prescricaoTemp?.tipoLente.name ?? '',
       'esferico': _prescricaoTemp?.esferico,
       'cilindrico': _prescricaoTemp?.cilindrico,
       'tipoArmacaoResumo': _prescricaoTemp?.tipoArmacao.name,
-    });
+      'sincronizado': false,
+      'usuario': _usuarioLogado,
+    };
+    await box.add(orcamentoMap);
 
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final docSnapshot = await transaction.get(docRef);
-      final double valorOrcamento = opcaoFinal.precoComDesconto;
+    // Tenta salvar no Firestore, mas não trava se falhar
+    if (_usuarioLogado != null && _usuarioLogado!.isNotEmpty) {
+      try {
+        final docRef = FirebaseFirestore.instance
+            .collection('usuarios_orcamentos')
+            .doc(_usuarioLogado);
 
-      if (docSnapshot.exists) {
-        final data = docSnapshot.data()!;
-        final totalAnterior = (data['total_orcamentos'] ?? 0) as int;
-        final valorAnterior = (data['valor_total'] ?? 0.0) as num;
-
-        transaction.update(docRef, {
-          'total_orcamentos': totalAnterior + 1,
-          'valor_total': arredondar2(valorAnterior + valorOrcamento),
+        await docRef.collection('orcamentos').add({
+          ...orcamentoMap,
+          'data': FieldValue.serverTimestamp(),
         });
-      } else {
-        transaction.set(docRef, {
-          'total_orcamentos': 1,
-          'valor_total': arredondar2(valorOrcamento),
+
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final docSnapshot = await transaction.get(docRef);
+          final double valorOrcamento = opcaoFinal.precoComDesconto;
+
+          if (docSnapshot.exists) {
+            final data = docSnapshot.data()!;
+            final totalAnterior = (data['total_orcamentos'] ?? 0) as int;
+            final valorAnterior = (data['valor_total'] ?? 0.0) as num;
+
+            transaction.update(docRef, {
+              'total_orcamentos': totalAnterior + 1,
+              'valor_total': arredondar2(valorAnterior + valorOrcamento),
+            });
+          } else {
+            transaction.set(docRef, {
+              'total_orcamentos': 1,
+              'valor_total': arredondar2(valorOrcamento),
+            });
+          }
         });
+
+        // Se salvar no Firestore, marque como sincronizado no Hive
+        orcamentoMap['sincronizado'] = true;
+        await box.putAt(box.values.length - 1, orcamentoMap);
+
+      } catch (e) {
+        // Se falhar, apenas mantenha como não sincronizado
+        if (kDebugMode) print('Firestore indisponível, orçamento salvo offline.');
       }
-    });
+    }
 
-    _prescricaoTemp = null;
+    _prescricaoTemp = null; // <- ESSENCIAL!
     _descontoAplicado = 0.0;
     _codigosDescontoAplicados.clear();
-    notifyListeners();
+    notifyListeners(); // <- ESSENCIAL!
   }
 
   void limparOrcamento() {
@@ -316,6 +335,48 @@ class OrcamentoService with ChangeNotifier {
       print('Valor médio: R\$ ${media.toStringAsFixed(2)}');
     }
   }
+
+  Future<void> sincronizarOrcamentosPendentes() async {
+    final box = Hive.box('orcamentos_offline');
+    final orcamentos = box.values.toList();
+
+    for (int i = 0; i < orcamentos.length; i++) {
+      final orcamento = Map<String, dynamic>.from(orcamentos[i]);
+      if (orcamento['sincronizado'] == true) continue;
+      final usuario = orcamento['usuario'];
+      if (usuario == null || usuario.isEmpty) continue;
+
+      try {
+        final docRef = FirebaseFirestore.instance
+            .collection('usuarios_orcamentos')
+            .doc(usuario);
+
+        await docRef.collection('orcamentos').add({
+          ...orcamento,
+          'data': FieldValue.serverTimestamp(),
+        });
+
+        // Atualiza como sincronizado
+        orcamento['sincronizado'] = true;
+        await box.putAt(i, orcamento);
+      } catch (e) {
+        // Se falhar, tenta novamente depois
+        if (kDebugMode) print('Falha ao sincronizar orçamento offline: $e');
+      }
+    }
+  }
+}
+
+// Para salvar um orçamento offline:
+Future<void> salvarOrcamentoOffline(Map<String, dynamic> orcamento) async {
+  final box = Hive.box('orcamentos_offline');
+  await box.add(orcamento);
+}
+
+// Para ler todos os orçamentos offline:
+List<Map> listarOrcamentosOffline() {
+  final box = Hive.box('orcamentos_offline');
+  return box.values.cast<Map>().toList();
 }
 
 double arredondar2(double valor) =>

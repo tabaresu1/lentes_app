@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import for FirebaseFirestore
 import 'firebase_options.dart';
-
+import 'package:provider/provider.dart';
 import 'orcamento_service.dart';
 import 'tela_menu.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +14,18 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  salvarTesteNoFirestore(); // <-- Adicione esta linha para testar
+  // --- CRUCIAL: Enable Firestore Offline Persistence ---
+  // This line enables offline data persistence for Firestore.
+  // It should be called AFTER Firebase.initializeApp() and BEFORE any Firestore operations.
+  FirebaseFirestore.instance.settings = Settings(
+    persistenceEnabled: true,
+    // You can also configure cache size, but default is usually fine to start
+    // cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  // ----------------------------------------------------
+
+  await Hive.initFlutter();
+  await Hive.openBox('orcamentos_offline');
 
   runApp(
     ChangeNotifierProvider(
@@ -23,16 +35,25 @@ void main() async {
   );
 }
 
-void salvarTesteNoFirestore() {
-  FirebaseFirestore.instance.collection('testes').add({
-    'mensagem': 'Hello Firestore!',
-    'timestamp': DateTime.now(),
-  });
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
 }
 
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    Connectivity().onConnectivityChanged.listen((status) {
+      if (status != ConnectivityResult.none) {
+        // Chama a sincronização quando ficar online
+        final orcamentoService = context.read<OrcamentoService>();
+        orcamentoService.sincronizarOrcamentosPendentes();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +64,6 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const TelaMenu(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

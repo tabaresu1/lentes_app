@@ -354,7 +354,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            child: const Text('Confirmar e Adicionar ao Orçamento'),
+            child: const Text('Confirmar Orçamento'),
             onPressed: _opcaoSelecionada == null
                 ? null
                 : () async {
@@ -364,9 +364,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                         const SnackBar(content: Text('Orçamento finalizado e salvo!')),
                       );
                     }
-                    setState(() {
-                      _opcaoSelecionada = null;
-                    });
+                    // Não precisa setState aqui, o Provider já vai atualizar a tela
                   },
           ),
         )

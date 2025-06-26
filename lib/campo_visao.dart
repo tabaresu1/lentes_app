@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
 import 'dart:ui'; // Para o BackdropFilter (efeito de vidro)
+import 'package:flutter_svg/flutter_svg.dart'; 
+import 'espessura_lente.dart'; // Importa CampoVisaoPercentagem
 
-// 1. Enum permanece o mesmo
-enum TipoCampoVisao { nenhum, monofocal, bifocal, multifocal }
+// 1. Enum para as opções de simulação na Tela Campo de Visão
+enum CampoVisaoSimulacao { 
+  nenhum, 
+  monofocal, 
+  bifocal, 
+  multifocal, // Agora serve como "abrir submenu"
+  // Opções para cada porcentagem de campo de visão
+  p40, p50, p67, p87, p98,
+  todos // Para mostrar todos os campos de visão juntos
+}
+
+enum CampoVisaoPercentagem {
+  p40, p50, p67, p87, p98
+}
 
 class TelaCampoVisao extends StatefulWidget {
   const TelaCampoVisao({super.key});
@@ -13,9 +27,47 @@ class TelaCampoVisao extends StatefulWidget {
 
 class _TelaCampoVisaoState extends State<TelaCampoVisao> {
   // 2. Estado inicial
-  TipoCampoVisao _selecaoAtual = TipoCampoVisao.nenhum;
-  // NOVO ESTADO: controla a visibilidade do painel de descrição
+  CampoVisaoSimulacao _selecaoAtual = CampoVisaoSimulacao.nenhum;
   bool _isDescricaoVisivel = false;
+
+  // Mapeamento de CampoVisaoPercentagem para o enum local de simulação
+  CampoVisaoPercentagem? _percentagemAtualEnum; 
+
+  // Dados para as descrições de distorção
+  static const Map<CampoVisaoPercentagem, Map<String, String>> _distorcaoData = {
+    CampoVisaoPercentagem.p40: {
+      'titulo': 'Campo de Visão 40%',
+      'descricao': 'Este campo de visão oferece uma área nítida mais limitada, com distorções perceptíveis nas laterais. É uma opção mais básica, exigindo mais movimentação da cabeça para enxergar com clareza em todas as distâncias.',
+      'pros': 'Custo mais acessível.',
+      'contras': 'Distorções laterais mais acentuadas; Exige maior adaptação; Campo de visão limitado.',
+    },
+    CampoVisaoPercentagem.p50: {
+      'titulo': 'Campo de Visão 50%',
+      'descricao': 'Com 50% de campo de visão, a área de transição e a nitidez são um pouco melhores que a opção de 40%. As distorções laterais ainda estão presentes, mas a adaptação pode ser mais suave.',
+      'pros': 'Melhor custo-benefício que opções mais básicas; Adaptação um pouco mais fácil.',
+      'contras': 'Ainda possui distorções laterais; Transição menos fluida que campos maiores.',
+    },
+    CampoVisaoPercentagem.p67: {
+      'titulo': 'Campo de Visão 67%',
+      'descricao': 'Representa um campo de visão intermediário a avançado, com uma redução significativa das distorções laterais. Proporciona uma transição mais confortável entre as diferentes distâncias.',
+      'pros': 'Melhor conforto visual e adaptação; Menor distorção lateral.',
+      'contras': 'Pode exigir um breve período de adaptação para alguns usuários.',
+    },
+
+    CampoVisaoPercentagem.p87: {
+      'titulo': 'Campo de Visão 87%',
+      'descricao': 'Extremamente amplo e otimizado, o campo de visão de 87% oferece a máxima clareza e conforto. As distorções são quase imperceptíveis, proporcionando uma experiência visual premium.',
+      'pros': 'Conforto visual superior; Praticamente sem distorções laterais; Adaptação muito rápida.',
+      'contras': 'Preço mais elevado.',
+    },
+    CampoVisaoPercentagem.p98: {
+      'titulo': 'Campo de Visão 98%',
+      'descricao': 'O ápice da tecnologia em lentes multifocais, com um campo de visão que se aproxima da perfeição, eliminando quase por completo as distorções. Proporciona a transição mais suave e natural possível.',
+      'pros': 'Melhor campo de visão possível; Transição totalmente natural; Adaptação instantânea para a maioria.',
+      'contras': 'Custo mais elevado, representando a tecnologia de ponta.',
+    },
+  };
+
 
   // Widget que constrói o menu inicial com um visual melhorado
   Widget _buildMenuVisao() {
@@ -39,39 +91,62 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
               style: TextStyle(fontSize: 16, color: Colors.black54),
             ),
             const SizedBox(height: 40),
-            // Botão para Monofocal
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0A2956),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(300, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () => setState(() {
-                _selecaoAtual = TipoCampoVisao.monofocal;
-                _isDescricaoVisivel = false; // Reseta a visibilidade
-              }),
-              child: const Text('Monofocal'),
-            ),
+            // Botões para Monofocal, Bifocal, Multifocal (gerais)
+            _buildBotaoTipoLente(texto: 'Monofocal', tipo: CampoVisaoSimulacao.monofocal),
             const SizedBox(height: 16),
-            // Botão para Bifocal
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0A2956),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(300, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () => setState(() {
-                _selecaoAtual = TipoCampoVisao.bifocal;
-                _isDescricaoVisivel = false; // Reseta a visibilidade
-              }),
-              child: const Text('Bifocal'),
-            ),
+            _buildBotaoTipoLente(texto: 'Bifocal', tipo: CampoVisaoSimulacao.bifocal),
             const SizedBox(height: 16),
-            // Botão para Multifocal
+            _buildBotaoTipoLente(texto: 'Multifocal', tipo: CampoVisaoSimulacao.multifocal), // Agora Multifocal é um "abrir submenu"
+          ],
+        ),
+      ),
+    );
+  }
+
+  // NOVO WIDGET: Sub-menu para seleção de porcentagens de campo de visão
+  Widget _buildMultifocalSubMenu() {
+    return Container(
+      color: Colors.grey[200],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Multifocal - Selecione o Campo de Visão',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A2956),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            // Botões para cada porcentagem de campo de visão
+            Wrap(
+              spacing: 12.0, // Aumenta o espaçamento
+              runSpacing: 12.0, // Aumenta o espaçamento
+              alignment: WrapAlignment.center,
+              children: CampoVisaoPercentagem.values.map((percentagemEnum) {
+                final String percentagemStr = percentagemEnum.toString().split('.').last.substring(1) + '%';
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0A2956),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(140, 60), // Botões maiores
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => setState(() {
+                    _selecaoAtual = _mapPercentagemEnumToSimulacao(percentagemEnum);
+                    _percentagemAtualEnum = percentagemEnum;
+                    _isDescricaoVisivel = false;
+                  }),
+                  child: Text(percentagemStr),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+            // Botão para "Comparar Todos os Campos de Visão"
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0A2956),
@@ -81,14 +156,43 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
                 textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               onPressed: () => setState(() {
-                _selecaoAtual = TipoCampoVisao.multifocal;
-                _isDescricaoVisivel = false; // Reseta a visibilidade
+                _selecaoAtual = CampoVisaoSimulacao.todos;
+                _isDescricaoVisivel = false;
               }),
-              child: const Text('Multifocal'),
+              child: const Text('Comparar Todos os Campos de Visão'),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Helper para mapear CampoVisaoPercentagem para CampoVisaoSimulacao
+  CampoVisaoSimulacao _mapPercentagemEnumToSimulacao(CampoVisaoPercentagem percentagemEnum) {
+  switch (percentagemEnum) {
+    case CampoVisaoPercentagem.p40: return CampoVisaoSimulacao.p40;
+    case CampoVisaoPercentagem.p50: return CampoVisaoSimulacao.p50;
+    case CampoVisaoPercentagem.p67: return CampoVisaoSimulacao.p67;
+    case CampoVisaoPercentagem.p87: return CampoVisaoSimulacao.p87;
+    case CampoVisaoPercentagem.p98: return CampoVisaoSimulacao.p98;
+  }
+}
+
+  // Helper para criar os botões de tipo de lente
+  Widget _buildBotaoTipoLente({required String texto, required CampoVisaoSimulacao tipo}) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF0A2956),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(300, 55),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      onPressed: () => setState(() {
+        _selecaoAtual = tipo;
+        _isDescricaoVisivel = false;
+      }),
+      child: Text(texto),
     );
   }
 
@@ -98,39 +202,44 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
     List<Widget> pros = [];
     List<Widget> contras = [];
 
-    switch (_selecaoAtual) {
-      case TipoCampoVisao.monofocal:
-        titulo = "Lente Monofocal (Visão Simples)";
-        descricao = "Ideal para corrigir a visão para uma única distância, oferecendo o campo de visão mais amplo e nítido.";
-        pros = [const Text('Campo de visão amplo e sem distorções.', style: TextStyle(color: Colors.white))];
-        contras = [const Text('Corrige apenas para longe OU perto.', style: TextStyle(color: Colors.white))];
-        break;
-      case TipoCampoVisao.bifocal:
-        titulo = "Lente Bifocal";
-        descricao = "Combina duas zonas de visão em uma única lente, uma para longe e outra para perto, separadas por uma linha visível.";
-        pros = [const Text('Visão nítida para longe e perto.', style: TextStyle(color: Colors.white))];
-        contras = [
-          const Text('Linha divisória visível.', style: TextStyle(color: Colors.white)),
-          const Text('Sem correção para distância intermediária.', style: TextStyle(color: Colors.white))
-        ];
-        break;
-      case TipoCampoVisao.multifocal:
-        titulo = "Lente Multifocal (Progressiva)";
-        descricao = "A solução mais completa, oferece uma transição suave entre as visões de perto, intermediário e longe, sem linhas.";
-        pros = [
-          const Text('Visão nítida para todas as distâncias.', style: TextStyle(color: Colors.white)),
-          const Text('Estética sem linhas visíveis.', style: TextStyle(color: Colors.white))
-        ];
-        contras = [
-          const Text('Exige período de adaptação.', style: TextStyle(color: Colors.white)),
-          const Text('Zonas de distorção nas laterais.', style: TextStyle(color: Colors.white))
-        ];
-        break;
-      default:
-        return const SizedBox.shrink();
+    // Lógica para tipos gerais (Monofocal, Bifocal, Multifocal)
+    if (_selecaoAtual == CampoVisaoSimulacao.monofocal) {
+      titulo = "Lente Monofocal (Visão Simples)";
+      descricao = "Ideal para corrigir a visão para uma única distância, oferecendo o campo de visão mais amplo e nítido.";
+      pros = [const Text('Campo de visão amplo e sem distorções.', style: TextStyle(color: Colors.white))];
+      contras = [const Text('Corrige apenas para longe OU perto.', style: TextStyle(color: Colors.white))];
+    } else if (_selecaoAtual == CampoVisaoSimulacao.bifocal) {
+      titulo = "Lente Bifocal";
+      descricao = "Combina duas zonas de visão em uma única lente, uma para longe e outra para perto, separadas por uma linha visível.";
+      pros = [const Text('Visão nítida para longe e perto.', style: TextStyle(color: Colors.white))];
+      contras = [
+        const Text('Linha divisória visível.', style: TextStyle(color: Colors.white)),
+        const Text('Sem correção para distância intermediária.', style: TextStyle(color: Colors.white))
+      ];
+    } else if (_selecaoAtual == CampoVisaoSimulacao.multifocal) {
+      // Quando _selecaoAtual é CampoVisaoSimulacao.multifocal, mostramos o sub-menu,
+      // então esta descrição genérica não é mais exibida no overlay.
+      return const SizedBox.shrink(); // Não há descrição detalhada para o item "Multifocal" geral
+    } 
+    // Lógica para descrições de porcentagens específicas
+    else if (_percentagemAtualEnum != null && _distorcaoData.containsKey(_percentagemAtualEnum)) {
+      final data = _distorcaoData[_percentagemAtualEnum]!;
+      titulo = data['titulo']!;
+      descricao = data['descricao']!;
+      pros = data['pros']!.split(';').map((s) => Text(s.trim(), style: const TextStyle(color: Colors.white))).toList();
+      contras = data['contras']!.split(';').map((s) => Text(s.trim(), style: const TextStyle(color: Colors.white))).toList();
+    } else if (_selecaoAtual == CampoVisaoSimulacao.todos) {
+      titulo = "Comparativo de Campos de Visão";
+      descricao = "Observe como as zonas de distorção variam em diferentes porcentagens de campo de visão em lentes multifocais. Quanto maior a porcentagem, menor a distorção e mais natural a transição.";
+      pros = [const Text('Compare as distorções para cada campo de visão.', style: TextStyle(color: Colors.white))];
+      contras = [const Text('As distorções podem variar ligeiramente entre fabricantes.', style: TextStyle(color: Colors.white))];
+    }else {
+      return const SizedBox.shrink(); 
     }
 
+
     Widget buildInfoRow(IconData icon, Color color, List<Widget> items) {
+      if (items.isEmpty) return const SizedBox.shrink();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: items.map((item) => Padding(
@@ -174,7 +283,7 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
               if (pros.isNotEmpty) buildInfoRow(Icons.check_circle, Colors.greenAccent, pros),
               if (contras.isNotEmpty) const SizedBox(height: 12),
               if (contras.isNotEmpty) buildInfoRow(Icons.cancel, Colors.redAccent, contras),
-              const SizedBox(height: 20), // Espaço extra na parte inferior
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -182,77 +291,72 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
     );
   }
 
-  // Widget que constrói a tela de simulação (agora sem a descrição)
+  // Widget que constrói a área de simulação
   Widget _buildAreaSimulacao() {
-    const String imagemDeFundo = 'assets/images/cena_ambiente.jpg';
-    // MUDANÇA 1: Monofocal overlay foi adicionado de volta ao mapa.
-    const Map<TipoCampoVisao, String> overlays = {
-      TipoCampoVisao.monofocal: 'assets/images/monofocal_overlay.png',
-      TipoCampoVisao.bifocal: 'assets/images/bifocal_overlay.png',
-      TipoCampoVisao.multifocal: 'assets/images/multifocal_overlay.png',
+    const Map<CampoVisaoSimulacao, String> overlays = {
+      CampoVisaoSimulacao.monofocal: 'assets/images/monofocal_overlay.png',
+      CampoVisaoSimulacao.bifocal: 'assets/images/bifocal_overlay.png',
+      CampoVisaoSimulacao.multifocal: 'assets/images/multifocal_overlay.png',
     };
+    
+    final Map<CampoVisaoPercentagem, String> campoVisaoImages = {
+      CampoVisaoPercentagem.p40: 'assets/images/campo_visao_40_exemplo.jpg',
+      CampoVisaoPercentagem.p50: 'assets/images/campo_visao_50_exemplo.jpg',
+      CampoVisaoPercentagem.p67: 'assets/images/campo_visao_67_exemplo.jpg',
+      CampoVisaoPercentagem.p87: 'assets/images/campo_visao_87_exemplo.jpg',
+      CampoVisaoPercentagem.p98: 'assets/images/campo_visao_98_exemplo.jpg',
+    };
+    
+    const String imagemComparativoGeral = 'assets/images/campo_visao_todos_comparativo.jpg'; 
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset(
-          imagemDeFundo,
-          // MUDANÇA 2: BoxFit.cover foi alterado para BoxFit.contain.
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Container(color: Colors.red),
-        ),
-        // A condição 'if' que excluía o monofocal foi removida.
-        Image.asset(
-          overlays[_selecaoAtual]!,
-          // MUDANÇA 2: BoxFit.cover foi alterado para BoxFit.contain.
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-
-  // NOVO WIDGET: Botão flutuante para mostrar a descrição
-  Widget _buildBotaoInfo() {
-    return Align(
-      alignment: Alignment.bottomRight,
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: FloatingActionButton(
-          onPressed: () => setState(() => _isDescricaoVisivel = true),
-          backgroundColor: Colors.white.withOpacity(0.9),
-          child: const Icon(Icons.chat_bubble_outline, color: Color(0xFF0A2956)),
-        ),
-      ),
-    );
-  }
-
-  // NOVO WIDGET: O overlay que contém o painel de descrição
-  Widget _buildDescricaoOverlay() {
-    return Visibility(
-      visible: _isDescricaoVisivel,
-      child: Stack(
-        children: [
-          // Fundo escurecido que fecha o painel ao ser tocado
-          GestureDetector(
-            onTap: () => setState(() => _isDescricaoVisivel = false),
-            child: Container(color: Colors.black.withOpacity(0.5)),
-          ),
-          // Painel que desliza de baixo para cima
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            bottom: _isDescricaoVisivel ? 0 : -MediaQuery.of(context).size.height, // Anima de fora da tela
-            left: 0,
-            right: 0,
-            child: GestureDetector(
-              onTap: () {}, // Bloqueia toques no painel para não fechar
-              child: _buildDescricaoDetalhada(),
+    switch (_selecaoAtual) {
+      case CampoVisaoSimulacao.monofocal:
+      case CampoVisaoSimulacao.bifocal:
+      case CampoVisaoSimulacao.multifocal: // NOVO: Se Multifocal geral, mostra o submenu
+        if (_selecaoAtual == CampoVisaoSimulacao.multifocal) {
+          return _buildMultifocalSubMenu();
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/cena_ambiente.jpg', // Imagem de fundo genérica
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(color: Colors.red),
             ),
-          )
-        ],
-      ),
-    );
+            Image.asset(
+              overlays[_selecaoAtual]!,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+            ),
+          ],
+        );
+
+      // Casos para cada porcentagem individual
+      case CampoVisaoSimulacao.p40:
+      case CampoVisaoSimulacao.p50:
+      case CampoVisaoSimulacao.p67:
+      case CampoVisaoSimulacao.p87:
+      case CampoVisaoSimulacao.p98:
+        String? assetPath = campoVisaoImages[_percentagemAtualEnum];
+        if (assetPath == null) return const Center(child: Text('Imagem não encontrada para este campo de visão.', style: TextStyle(color: Colors.black)));
+        return Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Center(child: Text('Erro ao carregar imagem.', style: TextStyle(color: Colors.red))),
+        );
+      
+      // Caso para "Todos os Campos de Visão Juntos"
+      case CampoVisaoSimulacao.todos:
+        return Image.asset(
+          imagemComparativoGeral,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Center(child: Text('Erro ao carregar imagem comparativa.', style: TextStyle(color: Colors.red))),
+        );
+
+      case CampoVisaoSimulacao.nenhum:
+        return const SizedBox.shrink();
+    }
   }
 
   // Widget do botão de voltar
@@ -271,7 +375,22 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
               elevation: 8,
             ),
             onPressed: () => setState(() {
-              _selecaoAtual = TipoCampoVisao.nenhum;
+              // Lógica de voltar aprimorada:
+              if (_selecaoAtual == CampoVisaoSimulacao.p40 || 
+                  _selecaoAtual == CampoVisaoSimulacao.p50 ||
+                  _selecaoAtual == CampoVisaoSimulacao.p67 ||
+                  _selecaoAtual == CampoVisaoSimulacao.p87 ||
+                  _selecaoAtual == CampoVisaoSimulacao.p98 ||
+                  _selecaoAtual == CampoVisaoSimulacao.todos) {
+                _selecaoAtual = CampoVisaoSimulacao.multifocal; // Volta para o submenu multifocal
+                _percentagemAtualEnum = null; // Reseta a seleção de porcentagem
+              } else if (_selecaoAtual == CampoVisaoSimulacao.monofocal ||
+                         _selecaoAtual == CampoVisaoSimulacao.bifocal ||
+                         _selecaoAtual == CampoVisaoSimulacao.multifocal) {
+                _selecaoAtual = CampoVisaoSimulacao.nenhum; // Volta para o menu principal
+              } else {
+                _selecaoAtual = CampoVisaoSimulacao.nenhum; // Fallback
+              }
               _isDescricaoVisivel = false; // Garante que a descrição seja fechada
             }),
             child: const Icon(Icons.arrow_back, size: 32),
@@ -281,31 +400,76 @@ class _TelaCampoVisaoState extends State<TelaCampoVisao> {
     );
   }
 
+  // Widget do botão flutuante para mostrar a descrição
+  Widget _buildBotaoInfo() {
+    // Esconde o botão de info se estiver no menu principal ou no submenu multifocal
+    if (_selecaoAtual == CampoVisaoSimulacao.nenhum || _selecaoAtual == CampoVisaoSimulacao.multifocal) {
+      return const SizedBox.shrink();
+    }
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: FloatingActionButton(
+          onPressed: () => setState(() => _isDescricaoVisivel = true),
+          backgroundColor: Colors.white.withOpacity(0.9),
+          child: const Icon(Icons.chat_bubble_outline, color: Color(0xFF0A2956)),
+        ),
+      ),
+    );
+  }
+
+  // O overlay que contém o painel de descrição
+  Widget _buildDescricaoOverlay() {
+    return Visibility(
+      visible: _isDescricaoVisivel,
+      child: Stack(
+        children: [
+          // Fundo escurecido que fecha o painel ao ser tocado
+          GestureDetector(
+            onTap: () => setState(() => _isDescricaoVisivel = false),
+            child: Container(color: Colors.black.withOpacity(0.5)),
+          ),
+          // Painel que desliza de baixo para cima
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            bottom: _isDescricaoVisivel ? 0 : -MediaQuery.of(context).size.height,
+            left: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () {}, // Bloqueia toques no painel para não fechar
+              child: _buildDescricaoDetalhada(),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 400),
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        child: _selecaoAtual == TipoCampoVisao.nenhum
+        transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+        child: _selecaoAtual == CampoVisaoSimulacao.nenhum
             ? _buildMenuVisao()
-            // Estrutura atualizada para a tela de simulação
             : Stack(
-                key: ValueKey(_selecaoAtual), // Chave para o AnimatedSwitcher funcionar
+                key: ValueKey(_selecaoAtual), 
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(20.0), // Padding que cria a "moldura"
+                    padding: const EdgeInsets.all(20.0), 
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: _buildAreaSimulacao(),
                     ),
                   ),
                   _buildBotaoVoltar(),
-                  _buildBotaoInfo(), // O botão de informação
-                  _buildDescricaoOverlay(), // O painel de descrição (visível ou não)
+                  _buildBotaoInfo(),
+                  _buildDescricaoOverlay(), 
                 ],
               ),
       ),
