@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'espessura_lente.dart'; // Importa os Enums, incluindo os novos para multifocal
 
 // Representa uma única regra/linha da sua tabela de indicação
@@ -47,19 +48,47 @@ class LogicaIndicacao {
     }
   }
 
-  static List<RegraIndicacao> getIndicacoes({
+   static List<RegraIndicacao> getIndicacoes({
     required double esferico,
     required double cilindrico,
     required TipoArmacao tipoArmacao,
     required TipoLente tipoLente,
+    required double adicao,
   }) {
     List<RegraIndicacao> regras = [];
     final cilAbs = cilindrico.abs();
 
+    // Aplica adição apenas para lentes multifocais com grau positivo
+    double esfericoAjustado = esferico;
+    if (tipoLente == TipoLente.multifocal && esferico >= 0) {
+      developer.log(
+        'Aplicando adição: '
+        'Esférico = $esferico, '
+        'Adição = $adicao, '
+        'Total = ${esferico + adicao}',
+        name: 'LogicaIndicacao'
+      );
+
+      esfericoAjustado = esferico + adicao;
+    }
+
+    // Variável única para uso nas classificações
+    double esfericoParaClassificacao = (tipoLente == TipoLente.multifocal && esferico >= 0) 
+        ? esfericoAjustado 
+        : esferico;
+
+     developer.log(
+      'Valor para classificação: $esfericoParaClassificacao '
+      '(Tipo: ${tipoLente == TipoLente.multifocal ? "Multifocal" : "Simples"}, '
+      'Sinal: ${esferico >= 0 ? "Positivo" : "Negativo"})',
+      name: 'LogicaIndicacao'
+    );
+
+
     if (tipoLente == TipoLente.simples) {
       // --- LÓGICA EXISTENTE PARA LENTES SIMPLES (MANTIDA) ---
       // --- GRAUS NEGATIVOS ---
-      if (esferico < 0) {
+      if (esfericoParaClassificacao < 0) {
         // Faixa de -0.25 a -2.00
         if (esferico >= -2.0) {
           if (cilAbs <= 2.0) {
@@ -122,7 +151,7 @@ class LogicaIndicacao {
         }
       } 
       // --- GRAUS POSITIVOS (SIMPLES) ---
-      else if (esferico >= 0) {
+      else if (esfericoParaClassificacao >= 0) {
         if (esferico <= 2.25) {
             if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal) return [RegraIndicacao(lente: "1.56", observacao: "(Camadas)", precos: {"Incolor 2 Camadas": 230, "AR 7 Camadas": 330, "Blue 15": 470, "Blue 25": 670, "Photo": 670, "Transition": 970})];
             return [RegraIndicacao(lente: "1.59", observacao: "(Poli)", precos: {"Incolor 2 Camadas": 470, "AR 7 Camadas": 570, "Blue 15": 770, "Blue 25": 970, "Photo": 1170})];
@@ -154,9 +183,9 @@ class LogicaIndicacao {
     // --- LENTES MULTIFOCAIS (LÓGICA REPLICADA DA SIMPLES) ---
     else if (tipoLente == TipoLente.multifocal) {
       // --- GRAUS NEGATIVOS (MULTIFOCAL) ---
-      if (esferico < 0) {
+      if (esfericoParaClassificacao < 0) {
         // Faixa de -0.25 a -3.00
-        if (esferico >= -3.0 && esferico <= -0.25) {
+        if (esfericoAjustado >= -3.0 && esfericoAjustado <= -0.25) {
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal) {
             regras.addAll([
               RegraIndicacao(
@@ -376,7 +405,7 @@ class LogicaIndicacao {
           }
         }
         // Faixa de -3.25 a -4
-        else if (esferico >= -4.0 && esferico <= -3.25) { // Inclui -4.0 e -3.25
+        else if (esfericoAjustado >= -4.0 && esfericoAjustado <= -3.25) { // Inclui -4.0 e -3.25
           // ACETATO/METAL/NYLON
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal || tipoArmacao == TipoArmacao.nylon) {
             regras.addAll([
@@ -448,7 +477,7 @@ class LogicaIndicacao {
           }
         }
         // Faixa Acima de -4 (esferico < -4.0)
-        else if (esferico < -4.0) { // Agora abrange valores menores que -4.0 (ex: -4.25, -5.0)
+        else if (esfericoAjustado < -4.0) { // Agora abrange valores menores que -4.0 (ex: -4.25, -5.0)
           // ACETATO/METAL/NYLON
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal || tipoArmacao == TipoArmacao.nylon) {
             regras.addAll([
@@ -514,9 +543,9 @@ class LogicaIndicacao {
         }
       } 
       // --- GRAUS POSITIVOS (MULTIFOCAL) ---
-      else if (esferico >= 0) {
+      else if (esfericoParaClassificacao >= 0) {
         // Faixa de +0.25 a +3
-        if (esferico >= 0.25 && esferico <= 3.0) {
+        if (esfericoParaClassificacao <= 3.0) {
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal) {
             regras.addAll([
               RegraIndicacao(
@@ -736,7 +765,7 @@ class LogicaIndicacao {
           }
         }
         // Faixa de +3.25 a +6
-        else if (esferico >= 3.25 && esferico <= 6.0) { // Inclui +3.25 e +6.0
+        else if (esfericoParaClassificacao <= 6.0) {
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal || tipoArmacao == TipoArmacao.nylon) {
             regras.addAll([
               RegraIndicacao(
@@ -813,7 +842,7 @@ class LogicaIndicacao {
           }
         }
         // Faixa Acima de +6 (esferico > 6.0)
-        else if (esferico > 6.0) {
+        else {
           // ACETATO/METAL/NYLON
           if (tipoArmacao == TipoArmacao.acetato || tipoArmacao == TipoArmacao.metal || tipoArmacao == TipoArmacao.nylon) {
             regras.addAll([

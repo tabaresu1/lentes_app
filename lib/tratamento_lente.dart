@@ -247,79 +247,262 @@ class _CamadasLenteWidgetState extends State<CamadasLenteWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Wrap(
-          spacing: 8, // Horizontal space between chips
-          children: [
-            FilterChip(
-              label: const Text('Filtro Azul'),
-              selected: _filtroAzul,
-              onSelected: (v) => setState(() => _filtroAzul = v),
-              selectedColor: Colors.brown[200],
-            ),
-            FilterChip(
-              label: const Text('Anti-Reflexo'),
-              selected: _antirreflexo,
-              onSelected: (v) => setState(() => _antirreflexo = v),
-              selectedColor: Colors.green[200],
-            ),
-            FilterChip(
-              label: const Text('Anti-Risco'),
-              selected: _antiRisco,
-              onSelected: (v) => setState(() => _antiRisco = v),
-              selectedColor: Colors.lightBlue[100],
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          height: 250, // Fixed height for the layer stack
-          child: Stack(
-            alignment: Alignment.bottomCenter, // Layers stack from the bottom
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Column(
+        children: [
+          // Chips de seleção com tamanho responsivo
+          Wrap(
+            spacing: isTablet ? 20 : 8,
+            runSpacing: 12,
             children: [
-              // Base lens layer
-              _buildLayer(color: Colors.grey[300]!, text: 'Lente Simples', offset: 0),
-              // Conditionally display other layers based on chip selection
-              if (_antiRisco) _buildLayer(color: Colors.lightBlue[100]!, text: 'Anti-Risco', offset: 1),
-              if (_antirreflexo) _buildLayer(color: Colors.green[200]!, text: 'Anti-Reflexo', offset: 2),
-              if (_filtroAzul) _buildLayer(color: Colors.brown[200]!, text: 'Filtro Azul', offset: 3),
+              _buildEnhancedChip(
+                label: 'Filtro Azul',
+                selected: _filtroAzul,
+                onSelected: (v) => setState(() => _filtroAzul = v),
+                color: Colors.blue[700]!,
+                icon: Icons.lightbulb_outline,
+              ),
+              _buildEnhancedChip(
+                label: 'Anti-Reflexo',
+                selected: _antirreflexo,
+                onSelected: (v) => setState(() => _antirreflexo = v),
+                color: Colors.purple[700]!,
+                icon: Icons.flash_on,
+              ),
+              _buildEnhancedChip(
+                label: 'Anti-Risco',
+                selected: _antiRisco,
+                onSelected: (v) => setState(() => _antiRisco = v),
+                color: Colors.green[700]!,
+                icon: Icons.security,
+              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  // Helper method to build individual lens layers
-  Widget _buildLayer({required Color color, required String text, required int offset}) {
-    return Positioned(
-      bottom: offset * 25.0, // Position layers above each other
-      child: Container(
-        width: 180 - offset * 10.0, // Make layers slightly smaller as they go up
-        height: 30,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(30 - offset * 3.0),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
+          const SizedBox(height: 32),
+          
+          // Representação 3D das camadas
+          SizedBox(
+            height: isTablet ? 350 : 280,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Fundo decorativo
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueGrey.withOpacity(0.3),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Efeito de profundidade
+                Positioned(
+                  top: 40,
+                  child: Container(
+                    width: 240,
+                    height: 240,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.2),
+                      border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                    ),
+                  ),
+                ),
+                
+                // Camadas de tratamento
+                Positioned(
+                  top: 80,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Lente base (sempre visível)
+                      _build3DLayer(
+                        color: Colors.grey[300]!,
+                        text: 'Lente Base',
+                        index: 0,
+                        isSelected: true,
+                      ),
+                      
+                      // Anti-Risco
+                      if (_antiRisco)
+                        _build3DLayer(
+                          color: Colors.green[400]!,
+                          text: 'Anti-Risco',
+                          index: 1,
+                          isSelected: _antiRisco,
+                        ),
+                      
+                      // Anti-Reflexo
+                      if (_antirreflexo)
+                        _build3DLayer(
+                          color: Colors.purple[300]!,
+                          text: 'Anti-Reflexo',
+                          index: 2,
+                          isSelected: _antirreflexo,
+                        ),
+                      
+                      // Filtro Azul
+                      if (_filtroAzul)
+                        _build3DLayer(
+                          color: Colors.blue[300]!,
+                          text: 'Filtro Azul',
+                          index: 3,
+                          isSelected: _filtroAzul,
+                        ),
+                    ],
+                  ),
+                ),
+                
+                // Efeito de reflexo
+                Positioned(
+                  top: 90,
+                  right: 60,
+                  child: Transform.rotate(
+                    angle: -0.3,
+                    child: Container(
+                      width: 100,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withOpacity(0.6),
+                            Colors.white.withOpacity(0.1),
+                          ],
+                          stops: const [0.2, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ),
+        ],
       ),
     );
   }
-}
 
-// This class is not directly used in the provided code but was present in the original snippet.
-class _LayerInfo {
-  final Color color;
-  final String? text;
-  final int offset;
-  _LayerInfo({required this.color, this.text, required this.offset});
+  // Chip aprimorado com ícone e efeitos
+  Widget _buildEnhancedChip({
+    required String label,
+    required bool selected,
+    required Function(bool) onSelected,
+    required Color color,
+    required IconData icon,
+  }) {
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: selected ? Colors.white : color),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : Colors.black87,
+          )),
+        ],
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: selected ? color : Colors.grey[200],
+      selectedColor: color,
+      checkmarkColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: selected ? color : Colors.grey[300]!, width: 1.5),
+      ),
+      elevation: 4,
+      shadowColor: Colors.black26,
+    );
+  }
+
+  // Camada 3D com efeitos de profundidade
+  Widget _build3DLayer({
+    required Color color,
+    required String text,
+    required int index,
+    required bool isSelected,
+  }) {
+    final double size = 200 - index * 20;
+    final double elevation = index * 6.0;
+    final double borderRadius = size / 2;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutBack,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(color, Colors.white, 0.3)!,
+            Color.lerp(color, Colors.black, 0.1)!,
+          ],
+        ),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.4),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: elevation,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.4),
+            blurRadius: 8,
+            spreadRadius: -2,
+            offset: const Offset(-4, -4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: AnimatedOpacity(
+          opacity: isSelected ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              shadows: [
+                Shadow(
+                  color: Colors.black45,
+                  blurRadius: 2,
+                  offset: Offset(1, 1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

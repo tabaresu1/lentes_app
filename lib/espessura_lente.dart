@@ -73,31 +73,36 @@ class _TelaEspessuraState extends State<TelaEspessura> {
 
   // --- FUNÇÃO ATUALIZADA PARA O NOVO FLUXO ---
   void _salvarEscolha() {
-    FocusScope.of(context).unfocus();
-    final esferico = double.tryParse(_esfericoController.text);
-    if (esferico == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Por favor, insira um grau esférico válido.'),
-        backgroundColor: Colors.red,
-      ));
-      return;
-    }
-    final cilindrico = double.tryParse(_cilindricoController.text) ?? 0.0;
-    
-    final prescricao = PrescricaoTemporaria(
-      esferico: esferico,
-      cilindrico: cilindrico,
-      tipoLente: _tipoLenteSelecionada,
-      tipoArmacao: _tipoArmacaoSelecionada,
-    );
-    // Apenas salva os dados no serviço e mostra a confirmação. Não navega.
-    context.read<OrcamentoService>().salvarPrescricao(prescricao);
+  FocusScope.of(context).unfocus();
+  final esferico = double.tryParse(_esfericoController.text.replaceAll(',', '.'));
+  if (esferico == null) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Dados da receita salvos!'),
-      backgroundColor: Colors.green,
-      duration: Duration(seconds: 2),
+      content: Text('Por favor, insira um grau esférico válido.'),
+      backgroundColor: Colors.red,
     ));
+    return;
   }
+  final cilindrico = double.tryParse(_cilindricoController.text.replaceAll(',', '.')) ?? 0.0;
+  final adicao = _tipoLenteSelecionada == TipoLente.multifocal
+      ? double.tryParse(_adicaoController.text.replaceAll(',', '.'))
+      : null;
+
+  final prescricao = PrescricaoTemporaria(
+    esferico: esferico,
+    cilindrico: cilindrico,
+    adicao: adicao,
+    tipoLente: _tipoLenteSelecionada,
+    tipoArmacao: _tipoArmacaoSelecionada,
+  );
+
+  context.read<OrcamentoService>().salvarPrescricao(prescricao);
+
+  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content: Text('Dados da receita salvos!'),
+    backgroundColor: Colors.green,
+    duration: Duration(seconds: 2),
+  ));
+}
   
   // --- WIDGETS DE MENU E NAVEGAÇÃO ---
   Widget _buildBotaoVoltar() {
@@ -282,68 +287,112 @@ class _TelaEspessuraState extends State<TelaEspessura> {
 
   // --- CALCULADORA ---
   Widget _buildCalculadora() {
-    return Container(
-      color: Colors.grey[200],
-      child: Stack(
-        children: [
-          SafeArea(
+  return Container(
+    color: Colors.grey[200],
+    child: Stack(
+      children: [
+        SafeArea(
+          child: Center( // Centraliza todo o conteúdo vertical e horizontalmente
             child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 450, // Largura máxima do conteúdo
+                  minHeight: MediaQuery.of(context).size.height * 0.8, // 80% da altura da tela
+                ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Faz a coluna ocupar apenas o espaço necessário
+                  mainAxisAlignment: MainAxisAlignment.center, // Centraliza verticalmente
                   children: [
-                    const SizedBox(height: 60),
-                    _buildToggleButtons("Tipo de Lente", _tipoLenteSelecionada, TipoLente.values, (TipoLente selection) => setState(() => _tipoLenteSelecionada = selection)),
-                    const SizedBox(height: 16),
-                    _buildToggleButtons("Material da Armação", _tipoArmacaoSelecionada, TipoArmacao.values, (TipoArmacao selection) => setState(() => _tipoArmacaoSelecionada = selection)),
+                    _buildToggleButtons(
+                      "Tipo de Lente",
+                      _tipoLenteSelecionada,
+                      TipoLente.values,
+                      (TipoLente selection) => setState(() => _tipoLenteSelecionada = selection),
+                    ),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: 450,
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _esfericoController,
-                            decoration: const InputDecoration(labelText: 'Grau Esférico', border: OutlineInputBorder()),
-                            keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.-]'))]
+                    _buildToggleButtons(
+                      "Material da Armação",
+                      _tipoArmacaoSelecionada,
+                      TipoArmacao.values,
+                      (TipoArmacao selection) => setState(() => _tipoArmacaoSelecionada = selection),
+                    ),
+                    const SizedBox(height: 32),
+                    Column(
+                      children: [
+                        TextField(
+                          controller: _esfericoController,
+                          decoration: const InputDecoration(
+                            labelText: 'Grau Esférico',
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
                           ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _cilindricoController,
-                            decoration: const InputDecoration(labelText: 'Grau Cilíndrico', border: OutlineInputBorder(), prefixText: '- '),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+                          keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.-]'))],
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _cilindricoController,
+                          decoration: const InputDecoration(
+                            labelText: 'Grau Cilíndrico',
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                            prefixText: '- ',
                           ),
-                          const SizedBox(height: 16),
-                          if (_tipoLenteSelecionada == TipoLente.multifocal) // Apenas mostra Adição para multifocal
-                            TextField(
-                              controller: _adicaoController,
-                              decoration: const InputDecoration(labelText: 'Adição', border: OutlineInputBorder()),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                            ),
-                        ],
-                      ),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                        ),
+                        if (_tipoLenteSelecionada == TipoLente.multifocal)
+                          Column(
+                            children: [
+                              const SizedBox(height: 20),
+                              TextField(
+                                controller: _adicaoController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Adição',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _salvarEscolha,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                        backgroundColor: Colors.blue[800],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Salvar Escolha para Orçamento')
+                      child: const Text('Salvar Escolha para Orçamento'),
                     ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
           ),
-          _buildBotaoVoltar(),
-        ],
-      ),
-    );
-  }
+        ),
+        Positioned(
+          top: 16,
+          left: 16,
+          child: _buildBotaoVoltar(),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildToggleButtons<T>(String title, T selection, List<T> values, ValueChanged<T> onSelection) {
     return Column(

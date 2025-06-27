@@ -9,16 +9,19 @@ import 'desconto_service.dart';
 class PrescricaoTemporaria {
   final double esferico;
   final double cilindrico;
+  final double? adicao; // <- Aqui está a adição como opcional
   final TipoLente tipoLente;
   final TipoArmacao tipoArmacao;
 
   PrescricaoTemporaria({
     required this.esferico,
     required this.cilindrico,
+    this.adicao, // <- Aqui também
     required this.tipoLente,
     required this.tipoArmacao,
   });
 }
+
 
 class OpcaoLenteCalculada {
   final String descricao;
@@ -182,36 +185,44 @@ class OrcamentoService with ChangeNotifier {
   }
 
   List<OpcaoLenteCalculada> gerarOpcoesDaTabela() {
-    if (_prescricaoTemp == null) return [];
+  if (_prescricaoTemp == null) return [];
 
-    final regras = LogicaIndicacao.getIndicacoes(
-      esferico: _prescricaoTemp!.esferico,
-      cilindrico: _prescricaoTemp!.cilindrico,
-      tipoArmacao: _prescricaoTemp!.tipoArmacao,
-      tipoLente: _prescricaoTemp!.tipoLente,
-    );
-
-    return regras.expand((regra) {
-      return regra.precos.entries.map((entry) {
-        final precoBase = entry.value;
-        final precoComAcrescimo = regra.status == 'nao_recomendado'
-            ? precoBase
-            : precoBase * _acrescimoMultiplier;
-
-        final precoFinalComDesconto =
-            precoComAcrescimo * (1 - _descontoAplicado);
-
-        return OpcaoLenteCalculada(
-          descricao: "${regra.lente} ${regra.observacao} | ${entry.key}",
-          precoOriginal: precoComAcrescimo,
-          precoComDesconto: precoFinalComDesconto,
-          precoBase: precoBase,
-          status: regra.status,
-          campoVisao: regra.campoVisao,
-        );
-      });
-    }).toList();
+  // CALCULA O GRAU EFETIVO (ESFÉRICO + ADIÇÃO PARA MULTIFOCAL POSITIVO)
+  double grauEfetivo = _prescricaoTemp!.esferico;
+  if (_prescricaoTemp!.tipoLente == TipoLente.multifocal && 
+      _prescricaoTemp!.esferico > 0 &&
+      _prescricaoTemp!.adicao != null) {
+    grauEfetivo += _prescricaoTemp!.adicao!;
   }
+
+  final regras = LogicaIndicacao.getIndicacoes(
+    esferico: grauEfetivo, // Usa o grau efetivo aqui
+    cilindrico: _prescricaoTemp!.cilindrico,
+    tipoArmacao: _prescricaoTemp!.tipoArmacao,
+    tipoLente: _prescricaoTemp!.tipoLente,
+    adicao: _prescricaoTemp!.adicao ?? 0, // Passa a adição se existir
+  );
+
+  return regras.expand((regra) {
+    return regra.precos.entries.map((entry) {
+      final precoBase = entry.value;
+      final precoComAcrescimo = regra.status == 'nao_recomendado'
+          ? precoBase
+          : precoBase * _acrescimoMultiplier;
+
+      final precoFinalComDesconto = precoComAcrescimo * (1 - _descontoAplicado);
+
+      return OpcaoLenteCalculada(
+        descricao: "${regra.lente} ${regra.observacao} | ${entry.key}",
+        precoOriginal: precoComAcrescimo,
+        precoComDesconto: precoFinalComDesconto,
+        precoBase: precoBase,
+        status: regra.status,
+        campoVisao: regra.campoVisao,
+      );
+    });
+  }).toList();
+}
 
   Future<void> finalizarOrcamento(OpcaoLenteCalculada opcaoFinal) async {
     _itensFinais.clear();
