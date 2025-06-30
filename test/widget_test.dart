@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // Importe o seu arquivo main.dart para que o teste saiba qual app iniciar.
 // Certifique-se de que o nome do seu projeto aqui esteja correto.
-import 'package:lentes_app/main.dart'; 
+import 'package:visao_360/main.dart'; 
 
 void main() {
   testWidgets('App starts without errors', (WidgetTester tester) async {
