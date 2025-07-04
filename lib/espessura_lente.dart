@@ -5,11 +5,37 @@ import 'orcamento_service.dart';
 import 'orcamento.dart';
 import 'dart:math'; // Adicione este import no topo do arquivo (já está no seu código)
 
-// Enums e classe LentePainter permanecem os mesmos...
-enum TelaEspessuraOpcao { menu, calculadora, comparativo }
+enum TelaEspessuraOpcao { menu, calculadora }
 enum TipoLente { simples, multifocal }
 enum TipoArmacao { acetato, metal, nylon, balgriff }
+enum TipoAro {
+  aroUso(1, 0.0),      // Código 1 - Sem adicional
+  promocional(2, 50.0), // Código 2 - +R$50
+  marcaPropria(3, 300.0); // Código 3 - +R$300
 
+  final int codigo;  // Número que será exibido
+  final double adicional;
+  
+  const TipoAro(this.codigo, this.adicional);
+
+  // Método para buscar pelo código
+  static TipoAro? fromCodigo(int codigo) {
+    try {
+      return values.firstWhere((e) => e.codigo == codigo);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Descrição para uso interno (não será exibida ao cliente)
+  String get descricaoInterna {
+    return switch(this) {
+      aroUso => 'Aro Uso (Padrão)',
+      promocional => 'Promocional (+R\$50)',
+      marcaPropria => 'Marca Própria (+R\$300)',
+    };
+  }
+}
 // NOVOS ENUMS PARA LENTES MULTIFOCAIS
 enum MaterialLenteMultifocal {
   l156, // Lente 1.56
@@ -61,7 +87,13 @@ class _TelaEspessuraState extends State<TelaEspessura> {
   final _adicaoController = TextEditingController();
   TipoLente _tipoLenteSelecionada = TipoLente.simples;
   TipoArmacao _tipoArmacaoSelecionada = TipoArmacao.acetato;
-  double _expoenteExagero = 3.0; // Altere este valor para testar o "exagero" visual
+  TipoAro _aroSelecionado = TipoAro.aroUso;
+
+void _selecionarAro(TipoAro aro) {
+    setState(() {
+      _aroSelecionado = aro;
+    });
+  }
 
   @override
   void dispose() {
@@ -93,6 +125,7 @@ class _TelaEspessuraState extends State<TelaEspessura> {
     adicao: adicao,
     tipoLente: _tipoLenteSelecionada,
     tipoArmacao: _tipoArmacaoSelecionada,
+      tipoAro: _aroSelecionado,
   );
 
   context.read<OrcamentoService>().salvarPrescricao(prescricao);
@@ -115,7 +148,8 @@ class _TelaEspessuraState extends State<TelaEspessura> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white.withOpacity(0.9),
               foregroundColor: Colors.black,
-              shape: const CircleBorder(), padding: const EdgeInsets.all(16),
+              shape: const CircleBorder(), 
+              padding: const EdgeInsets.all(16),
               elevation: 8,
             ),
             onPressed: () {
@@ -123,7 +157,7 @@ class _TelaEspessuraState extends State<TelaEspessura> {
               setState(() {
                 _opcaoSelecionada = TelaEspessuraOpcao.menu;
                 _esfericoController.clear();
-                _cilindricoController.clear();;
+                _cilindricoController.clear();
               });
             },
             child: const Icon(Icons.arrow_back, size: 32),
@@ -140,30 +174,23 @@ class _TelaEspessuraState extends State<TelaEspessura> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Espessura da Lente', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF0A2956))),
+            const Text('Espessura da Lente', 
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF0A2956))),
             const SizedBox(height: 8),
-            const Text('Escolha uma ferramenta de simulação', style: TextStyle(fontSize: 16, color: Colors.black54)),
+            const Text('Escolha uma ferramenta de simulação', 
+                style: TextStyle(fontSize: 16, color: Colors.black54)),
             const SizedBox(height: 40),
             ElevatedButton.icon(
               icon: const Icon(Icons.calculate),
               label: const Text('Calculadora de Indicação'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0A2956), foregroundColor: Colors.white,
-                minimumSize: const Size(300, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: const Color(0xFF0A2956), 
+                foregroundColor: Colors.white,
+                minimumSize: const Size(300, 55), 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               onPressed: () => setState(() => _opcaoSelecionada = TelaEspessuraOpcao.calculadora),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.compare_arrows),
-              label: const Text('Comparativo Visual'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0A2956),foregroundColor: Colors.white,
-                minimumSize: const Size(300, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () => setState(() => _opcaoSelecionada = TelaEspessuraOpcao.comparativo),
             ),
           ],
         ),
@@ -171,138 +198,23 @@ class _TelaEspessuraState extends State<TelaEspessura> {
     );
   }
 
-  // --- COMPARATIVO VISUAL ---
-  Widget _buildComparativo() {
+  Widget _buildCalculadora() {
     return Container(
       color: Colors.grey[200],
       child: Stack(
         children: [
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 80.0, left: 16.0, right: 16.0, bottom: 16.0),
-              child: Column(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Grau Esférico: ${_grauSelecionadoComparativo.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, color: Colors.black54)),
-                      Slider(
-                        value: _grauSelecionadoComparativo,
-                        min: -10.0,
-                        max: 10.0,
-                        divisions: 80,
-                        label: _grauSelecionadoComparativo.toStringAsFixed(2),
-                        onChanged: (value) => setState(() => _grauSelecionadoComparativo = value),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(child: _buildSideBySideLensView(_indiceEsquerda, (v) => setState(() => _indiceEsquerda = v))),
-                        const VerticalDivider(width: 2, thickness: 2, color: Colors.black26),
-                        Expanded(child: _buildSideBySideLensView(_indiceDireita, (v) => setState(() => _indiceDireita = v))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _buildBotaoVoltar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSideBySideLensView(double currentIndex, ValueChanged<double> onChanged) {
-    double espessuraBorda = 0.1;
-    double espessuraCentro = 0.1;
-    double grauAbsolutoNormalizado = _grauSelecionadoComparativo.abs() / 10.0;
-    if (_grauSelecionadoComparativo < 0) {
-      espessuraBorda = 0.1 + (grauAbsolutoNormalizado * 0.9);
-    } else {
-      espessuraCentro = 0.1 + (grauAbsolutoNormalizado * 0.9);
-    }
-
-    // Expoente específico para cada índice (você já tinha isso)
-    double expoente;
-    if ((currentIndex - 1.56).abs() < 0.01) {
-      expoente = 6.0;
-    } else if ((currentIndex - 1.59).abs() < 0.01) {
-      expoente = 4.5;
-    } else if ((currentIndex - 1.61).abs() < 0.01) {
-      expoente = 3.0;
-    } else if ((currentIndex - 1.67).abs() < 0.01) {
-      expoente = 2.0;
-    } else {
-      expoente = 1.0; // 1.74
-    }
-
-    // APLICANDO O EXAGERO AQUI:
-    // O fator de redução é elevado a um expoente para exagerar a diferença.
-    // Quanto maior o _expoenteExagero, mais exagerada a diferença.
-    double fatorReducao = pow(1.50 / currentIndex, _expoenteExagero).toDouble(); // Convert to double explicitly
-
-    espessuraBorda *= fatorReducao;
-    espessuraCentro *= fatorReducao;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        Wrap(
-          spacing: 4.0,
-          runSpacing: 4.0,
-          alignment: WrapAlignment.center,
-          children: _opcoesLentes.entries.map((entry) {
-            final bool isSelected = entry.value == currentIndex;
-            return OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                backgroundColor: isSelected ? const Color(0xFF0A2956).withOpacity(0.1) : Colors.transparent,
-                side: BorderSide(color: isSelected ? const Color(0xFF0A2956) : Colors.grey),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              onPressed: () => onChanged(entry.value),
-              child: Text(entry.key, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isSelected ? const Color(0xFF0A2956) : Colors.black54)),
-            );
-          }).toList(),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-            child: CustomPaint(
-              size: Size.infinite, 
-              painter: _LentePainter(
-                espessuraBorda: espessuraBorda.clamp(0.05, 1.0),
-                espessuraCentro: espessuraCentro.clamp(0.05, 1.0),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- CALCULADORA ---
-  Widget _buildCalculadora() {
-  return Container(
-    color: Colors.grey[200],
-    child: Stack(
-      children: [
-        SafeArea(
-          child: Center( // Centraliza todo o conteúdo vertical e horizontalmente
+            child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: 450, // Largura máxima do conteúdo
-                  minHeight: MediaQuery.of(context).size.height * 0.8, // 80% da altura da tela
+                    maxWidth: 450,
+                    minHeight: MediaQuery.of(context).size.height * 0.8,
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Faz a coluna ocupar apenas o espaço necessário
-                  mainAxisAlignment: MainAxisAlignment.center, // Centraliza verticalmente
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildToggleButtons(
                       "Tipo de Lente",
@@ -310,6 +222,8 @@ class _TelaEspessuraState extends State<TelaEspessura> {
                       TipoLente.values,
                       (TipoLente selection) => setState(() => _tipoLenteSelecionada = selection),
                     ),
+                      const SizedBox(height: 24),
+                      _buildSeletorAro(),
                     const SizedBox(height: 24),
                     _buildToggleButtons(
                       "Material da Armação",
@@ -435,63 +349,46 @@ class _TelaEspessuraState extends State<TelaEspessura> {
 
   Widget _buildTelaAtual() {
     switch (_opcaoSelecionada) {
-      case TelaEspessuraOpcao.calculadora: return _buildCalculadora();
-      case TelaEspessuraOpcao.comparativo: return _buildComparativo();
-      default: return _buildMenuEspessura();
+      case TelaEspessuraOpcao.calculadora: 
+        return _buildCalculadora();
+      default: 
+        return _buildMenuEspessura();
     }
   }
-}
 
-class _LentePainter extends CustomPainter {
-  final double espessuraBorda;
-  final double espessuraCentro;
-  _LentePainter({required this.espessuraBorda, required this.espessuraCentro});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [
-          Colors.blue.shade300.withOpacity(0.4),
-          Colors.blue.shade100.withOpacity(0.5),
-          Colors.blue.shade300.withOpacity(0.4),
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    final path = Path();
-    final double espessuraMinima = size.height * 0.02;
-    final double alturaBorda = espessuraMinima + (size.height * 0.8 * espessuraBorda);
-    final double alturaCentro = espessuraMinima + (size.height * 0.8 * espessuraCentro);
-    
-    final pTopoEsquerda = Offset(0, size.height / 2 - alturaBorda / 2);
-    final pTopoDireita = Offset(size.width, size.height / 2 - alturaBorda / 2);
-    final pControleTopo1 = Offset(size.width * 0.25, size.height / 2 - alturaCentro / 2);
-    final pControleTopo2 = Offset(size.width * 0.75, size.height / 2 - alturaCentro / 2);
-
-    final pBaixoDireita = Offset(size.width, size.height / 2 + alturaBorda / 2);
-    final pBaixoEsquerda = Offset(0, size.height / 2 + alturaBorda / 2);
-    final pControleBaixo1 = Offset(size.width * 0.75, size.height / 2 + alturaCentro / 2);
-    final pControleBaixo2 = Offset(size.width * 0.25, size.height / 2 + alturaCentro / 2);
-
-    path.moveTo(pTopoEsquerda.dx, pTopoEsquerda.dy);
-    path.cubicTo(pControleTopo1.dx, pControleTopo1.dy, pControleTopo2.dx, pControleTopo2.dy, pTopoDireita.dx, pTopoDireita.dy);
-    path.lineTo(pBaixoDireita.dx, pBaixoDireita.dy);
-    path.cubicTo(pControleBaixo1.dx, pControleBaixo1.dy, pControleBaixo2.dx, pControleBaixo2.dy, pBaixoEsquerda.dx, pBaixoEsquerda.dy);
-    path.close();
-
-    final paintBorda = Paint()
-      ..color = Colors.blue.shade700.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    canvas.drawPath(path, paint);
-    canvas.drawPath(path, paintBorda);
+Widget _buildSeletorAro() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Tipo de Aro', 
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
+      const SizedBox(height: 8),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: TipoAro.values.map((aro) {
+          return ElevatedButton(
+            onPressed: () => setState(() => _aroSelecionado = aro),
+            style: ButtonStyle(
+              backgroundColor: MaterialStateProperty.all(
+                _aroSelecionado == aro ? Colors.blue[700] : Colors.grey[300],
+              ),
+              minimumSize: MaterialStateProperty.all(const Size(60, 60)),
+              shape: MaterialStateProperty.all(const CircleBorder()),
+            ),
+            child: Text(
+              '${aro.codigo}',
+              style: TextStyle(
+                fontSize: 18,
+                color: _aroSelecionado == aro ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    ],
+  );
   }
 
-  @override
-  bool shouldRepaint(covariant _LentePainter oldDelegate) {
-    return oldDelegate.espessuraBorda != espessuraBorda || oldDelegate.espessuraCentro != espessuraCentro;
-  }
 }
+

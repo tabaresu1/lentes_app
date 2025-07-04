@@ -5,6 +5,8 @@ import 'orcamento_service.dart';
 import 'desconto_service.dart';
 import 'espessura_lente.dart';
 import 'pdf_generator.dart';
+import 'package:intl/intl.dart';
+
 
 // Importe o modelo se necessário
 // import 'modelos/opcao_lente_calculada.dart';
@@ -63,6 +65,8 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
       ),
     );
   }
+  
+  final formatador = NumberFormat.currency(locale: 'pt_BR', symbol: '', decimalDigits: 2);
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +160,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                 if (precoComDescontoNovo < precoMinimoPermitido) {
                   _showDescontoFeedback(ResultadoDesconto(
                     valido: false,
-                    mensagem: 'Sistema não liberou este desconto (limite de 25% abaixo do valor de tabela).',
+                    mensagem: 'Desconto excedido',
                   ));
                   return;
                 }
@@ -252,15 +256,16 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                       children: [
                         if (temDesconto)
                           Text(
-                            'R\$ ${opcao.precoOriginal.toStringAsFixed(2)}',
+                            'R\$ ${formatador.format(opcao.precoOriginal)}',
                             style: const TextStyle(
                               decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
-                              fontSize: 12,
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
                           ),
                         Text(
-                          'R\$ ${opcao.precoComDesconto.toStringAsFixed(2)}',
+                          'R\$ ${formatador.format(opcao.precoComDesconto)}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: temDesconto ? Colors.green : Colors.black,
@@ -305,15 +310,16 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                   children: [
                     if (temDesconto)
                       Text(
-                        'R\$ ${opcao.precoOriginal.toStringAsFixed(2)}',
+                        '10x de R\$ ${formatador.format(opcao.precoOriginal / 10)}',
                         style: const TextStyle(
                           decoration: TextDecoration.lineThrough,
-                          color: Colors.grey,
-                          fontSize: 12,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
                     Text(
-                      'R\$ ${opcao.precoComDesconto.toStringAsFixed(2)}',
+                      '10x de R\$ ${formatador.format(opcao.precoComDesconto / 10)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: temDesconto ? Colors.green : Colors.black,
@@ -343,7 +349,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
                 style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, decoration: TextDecoration.lineThrough),
               ),
               trailing: Text(
-                'R\$ ${opcao.precoBase.toStringAsFixed(2)}',
+                '10x de R\$ ${formatador.format(opcao.precoBase / 10)}',
                 style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
               ),
             ),
@@ -393,7 +399,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
               child: ListTile(
                 title: Text(item.categoria, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 subtitle: Text(item.descricao, style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: Text('R\$ ${item.preco.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: Text('R\$ ${formatador.format(item.preco)}', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             );
           },
@@ -405,7 +411,7 @@ class _TelaOrcamentoState extends State<TelaOrcamento> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('TOTAL:', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Text('R\$ ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+              Text('R\$ ${formatador.format(total)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
             ],
           ),
         ),

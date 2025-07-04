@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
 import 'orcamento_service.dart';
 import 'tratamento_lente.dart';
 import 'espessura_lente.dart';
 import 'campo_visao.dart';
 import 'orcamento.dart';
-import 'tela_login_ac.dart';
+import 'tela_login_ac.dart'; // Importa a tela de login AC, agora como uma página
+import 'tela_educacao.dart'; // Importa a nova tela de educação
 
 class TelaMenu extends StatefulWidget {
   const TelaMenu({super.key});
@@ -17,7 +17,7 @@ class TelaMenu extends StatefulWidget {
 }
 
 class _TelaMenuState extends State<TelaMenu> {
-  int _paginaAtual = 1;
+  int _paginaAtual = 0;
 
   @override
   void initState() {
@@ -25,18 +25,33 @@ class _TelaMenuState extends State<TelaMenu> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
+  // NOVO: A lista _paginasBase agora inclui todas as telas que podem ser exibidas diretamente
+  // pelo IndexedStack, incluindo TelaOrcamento e TelaEducacao.
   final List<Widget> _paginasBase = [
-    const TelaTratamentoLente(),
-    const TelaEspessura(),
-    const TelaCampoVisao(),
+    const TelaTratamentoLente(),      // Index 0
+    const TelaEspessura(),           // Index 1
+    const TelaCampoVisao(),          // Index 2
+    const TelaOrcamento(),           // Index 3 (para o slot de orçamento)
+    const TelaEducacao(),            // Index 4 (para Educação)
   ];
 
   void _onPaginaSelecionada(int index) {
+    // Se o índice selecionado for 3 (que é o do botão 'Orçamento')
+    if (index == 3) {
+      // OrcamentoService é observado no build, então não precisamos dele aqui para a decisão de tela.
+      // Apenas definimos a página atual e o build irá reagir ao estado do OrcamentoService.
+      setState(() {
+        _paginaAtual = index; 
+      });
+    } else {
+      // Para outras páginas (Tratamentos, Espessura, Campo de Visão, Educação)
     setState(() {
       _paginaAtual = index;
     });
+    }
   }
 
+  // Método _mostrarDialogoAC para ser usado pela engrenagem (agora como AlertDialog)
   void _mostrarDialogoAC(BuildContext context) {
     final controller = TextEditingController();
 
@@ -89,16 +104,20 @@ class _TelaMenuState extends State<TelaMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final orcamentoService = context.watch<OrcamentoService>();
+    final orcamentoService = context.watch<OrcamentoService>(); // Observa o serviço para reagir a mudanças no AC
 
+    // Conteúdo a ser exibido na área da direita
     Widget currentPageContent;
-    if (_paginaAtual == 3) {
+    if (_paginaAtual == 3) { // Se o índice selecionado é o do Orçamento
       if (!orcamentoService.isAcCodeSetForCurrentSession) {
+        // Se o Código AC não está definido, mostra a tela de login AC
         currentPageContent = const TelaLoginAC();
       } else {
-        currentPageContent = const TelaOrcamento();
+        // Se o Código AC está definido, mostra a TelaOrcamento
+        currentPageContent = _paginasBase[_paginaAtual]; // Agora TelaOrcamento está em _paginasBase
       }
     } else {
+      // Para as outras páginas (Tratamentos, Espessura, Campo de Visão, Educação)
       currentPageContent = _paginasBase[_paginaAtual];
     }
 
@@ -108,7 +127,7 @@ class _TelaMenuState extends State<TelaMenu> {
         children: [
           Row(
             children: [
-              // Menu lateral
+              // --- COLUNA DA ESQUERDA COM O MENU ---
               Container(
                 width: 300,
                 color: Colors.grey[200],
@@ -141,7 +160,9 @@ class _TelaMenuState extends State<TelaMenu> {
                           const SizedBox(height: 16),
                           _buildBotaoMenu(texto: 'Campo de Visão', index: 2),
                           const SizedBox(height: 16),
-                          _buildBotaoMenu(texto: 'Orçamento', index: 3),
+                          _buildBotaoMenu(texto: 'Orçamento', index: 3), // Orçamento é o índice 3
+                          const SizedBox(height: 16),
+                          _buildBotaoMenu(texto: 'Educação e Treinamento', index: 4), // Educação é o índice 4
                         ],
                       ),
                     ),
@@ -149,7 +170,7 @@ class _TelaMenuState extends State<TelaMenu> {
                 ),
               ),
 
-              // Conteúdo à direita
+              // --- ÁREA DE CONTEÚDO À DIREITA (Dinâmica) ---
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -158,7 +179,7 @@ class _TelaMenuState extends State<TelaMenu> {
               ),
             ],
           ),
-          // Botão engrenagem
+          // Botão de engrenagem
           Positioned(
             top: 10,
             right: 10,
@@ -173,6 +194,7 @@ class _TelaMenuState extends State<TelaMenu> {
     );
   }
 
+  // Widget helper para construir os botões do menu
   Widget _buildBotaoMenu({required String texto, required int index}) {
     final bool isSelected = _paginaAtual == index;
 
@@ -192,9 +214,7 @@ class _TelaMenuState extends State<TelaMenu> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         elevation: isSelected ? 8 : 2,
       ),
-      onPressed: () {
-        _onPaginaSelecionada(index);
-      },
+      onPressed: () => _onPaginaSelecionada(index),
       child: Text(texto),
     );
   }

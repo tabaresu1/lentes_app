@@ -21,6 +21,9 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.0.3
+  youtube_player_flutter: ^9.0.1
+  intl: ^0.18.1
+
 
 dev_dependencies:
   flutter_test:
@@ -31,12 +34,14 @@ dev_dependencies:
 
 # ===== SPLASH SCREEN CONFIG =====
 flutter_native_splash:
-  color: "#FFFFFF"
-  background_image: "assets/splash/background.png"
-  android: true
-  ios: true
-  web: false
-  fullscreen: true
+  color: "#1d3091" # Cor de fundo (ou remova se usar imagem)
+  background_image: assets/splash/background.png # <- fundo da splash
+  image: assets/splash/logo.png                         # <- logo central
+  android_12:
+    image: assets/splash/logo.png
+    background_image: assets/splash/background.png
+    icon_background_color: "#FFFFFF"
+
 
 # ===== LAUNCHER ICONS CONFIG =====
 flutter_launcher_icons:
@@ -50,7 +55,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-    - assets/splash/  # ← ADD THIS LINE FOR SPLASH SCREEN IMAGE
+    - assets/splash/
+    - assets/data/ 
   fonts:
     - family: Roboto
       fonts:

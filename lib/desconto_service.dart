@@ -44,7 +44,7 @@ class DescontoService {
       if ((descontoAtual + novoDesconto) > 0.25) {
         return ResultadoDesconto(
           valido: false,
-          mensagem: 'Limite de 25% de desconto atingido!',
+          mensagem: 'Desconto excedido.',
         );
       }
       return ResultadoDesconto(

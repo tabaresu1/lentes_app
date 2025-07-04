@@ -1,0 +1,40 @@
+[
+  {
+    "id": "introducao",
+    "titulo": "Introdução ao App Visão 360",
+    "descricao_curta": "Primeiros passos e visão geral das funcionalidades do aplicativo.",
+    "topicos": [
+      {
+        "id": "navegacao_basica",
+        "titulo_topico": "Navegação Básica e Menu",
+        "conteudo": "Aprenda a navegar entre as diferentes seções do aplicativo utilizando o menu lateral esquerdo. Cada item do menu (Espessura, Tratamentos, Campo de Visão, Orçamento, Educação) leva a uma funcionalidade específica. O ícone de engrenagem no canto superior direito permite acessar configurações adicionais, como o Código AC.",
+        "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 
+      },
+      {
+        "id": "fluxo_orcamento",
+        "titulo_topico": "Entendendo o Fluxo do Orçamento",
+        "conteudo": "O fluxo de orçamento começa na tela 'Espessura' com a 'Calculadora de Indicação'. Após salvar a escolha da receita, você será direcionado para a tela de 'Orçamento', onde poderá aplicar descontos e finalizar a seleção da lente. Lembre-se que o Código AC é solicitado ao iniciar um novo orçamento.",
+        "video_url": null 
+      }
+    ]
+  },
+  {
+    "id": "simulacoes_visuais",
+    "titulo": "Simulações Visuais para Vendas",
+    "descricao_curta": "Como usar as ferramentas visuais para encantar seu cliente.",
+    "topicos": [
+      {
+        "id": "comparativo_espessura",
+        "titulo_topico": "Comparativo de Espessura de Lentes",
+        "conteudo": "Na seção 'Espessura', utilize o 'Comparativo Visual' para demonstrar a diferença de espessura entre lentes de diferentes índices de refração. Ajuste o grau esférico para ver o impacto visual e explique ao cliente a importância de lentes mais finas para graus altos.",
+        "video_url": "https://www.youtube.com/watch?v=your_video_id_here" 
+      },
+      {
+        "id": "tratamentos_interativos",
+        "titulo_topico": "Demonstrando Tratamentos Interativos",
+        "conteudo": "Na seção 'Tratamentos', explore as simulações de Antirreflexo, Fotossensível e Filtro de Luz Azul. Use os sliders ou interações para que o cliente visualize o benefício de cada tratamento de forma prática e compreenda o valor agregado.",
+        "video_url": null
+      }
+    ]
+  }
+]

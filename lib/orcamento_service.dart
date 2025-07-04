@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 
 import 'espessura_lente.dart';
-import 'logica_indicacao.dart';
+import '/logica_indicacao/regra_indicacao.dart';
 import 'desconto_service.dart';
 
 class PrescricaoTemporaria {
@@ -12,6 +12,7 @@ class PrescricaoTemporaria {
   final double? adicao; // <- Aqui está a adição como opcional
   final TipoLente tipoLente;
   final TipoArmacao tipoArmacao;
+  final TipoAro tipoAro; // <- Adicionando o tipo de aro
 
   PrescricaoTemporaria({
     required this.esferico,
@@ -19,6 +20,7 @@ class PrescricaoTemporaria {
     this.adicao, // <- Aqui também
     required this.tipoLente,
     required this.tipoArmacao,
+    required this.tipoAro, // <- E aqui
   });
 }
 
@@ -62,6 +64,7 @@ class OrcamentoItem {
   final double precoOriginalItem;
   final double percentagemDescontoAplicada;
   final String tipoArmacao;
+  final String tipoAro; // Novo campo
   final double esferico;
   final double cilindrico;
   final String tipoLente;
@@ -73,6 +76,7 @@ class OrcamentoItem {
     required this.precoOriginalItem,
     required this.percentagemDescontoAplicada,
     required this.tipoArmacao,
+    required this.tipoAro,
     required this.esferico,
     required this.cilindrico,
     required this.tipoLente,
@@ -196,16 +200,23 @@ class OrcamentoService with ChangeNotifier {
   }
 
   final regras = LogicaIndicacao.getIndicacoes(
-    esferico: grauEfetivo, // Usa o grau efetivo aqui
+    esferico: grauEfetivo,
     cilindrico: _prescricaoTemp!.cilindrico,
     tipoArmacao: _prescricaoTemp!.tipoArmacao,
     tipoLente: _prescricaoTemp!.tipoLente,
-    adicao: _prescricaoTemp!.adicao ?? 0, // Passa a adição se existir
+    adicao: _prescricaoTemp!.adicao ?? 0,
   );
 
   return regras.expand((regra) {
     return regra.precos.entries.map((entry) {
-      final precoBase = entry.value;
+      if(kDebugMode){
+        print('Preço base: ${entry.value} | '
+            'Adicional aro: ${_prescricaoTemp!.tipoAro.adicional} | '
+            'Total: ${entry.value + _prescricaoTemp!.tipoAro.adicional}');
+      }
+      // ADICIONE O ADICIONAL DO ARO AQUI
+      final precoBase = entry.value + _prescricaoTemp!.tipoAro.adicional;
+      
       final precoComAcrescimo = regra.status == 'nao_recomendado'
           ? precoBase
           : precoBase * _acrescimoMultiplier;
@@ -233,6 +244,7 @@ class OrcamentoService with ChangeNotifier {
       precoOriginalItem: opcaoFinal.precoOriginal,
       percentagemDescontoAplicada: _descontoAplicado,
       tipoArmacao: _prescricaoTemp?.tipoArmacao.name ?? '',
+    tipoAro: _prescricaoTemp?.tipoAro.descricaoInterna ?? '', // Novo campo
       esferico: _prescricaoTemp?.esferico ?? 0.0,
       cilindrico: _prescricaoTemp?.cilindrico ?? 0.0,
       tipoLente: _prescricaoTemp?.tipoLente.name ?? '',

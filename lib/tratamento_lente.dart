@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // Make sure this import is present
+import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:math';
+
+// --- ENUM ATUALIZADO COM NOVA OPÇÃO ---
+enum TipoTratamento {
+  camadas,
+  nenhum,
+  antirreflexo,
+  fotossensivel,
+  filtroAzul,
+  comparativoEspessura // NOVO
+}
 
 // Helper class for the anti-reflection slider
 class _ImageRevealClipper extends CustomClipper<Rect> {
@@ -13,9 +24,6 @@ class _ImageRevealClipper extends CustomClipper<Rect> {
   bool shouldReclip(_ImageRevealClipper oldClipper) => oldClipper.revealPercent != revealPercent;
 }
 
-// Enum for different lens treatment types
-enum TipoTratamento { camadas, nenhum, antirreflexo, fotossensivel, filtroAzul }
-
 class TelaTratamentoLente extends StatefulWidget {
   const TelaTratamentoLente({super.key});
 
@@ -25,11 +33,26 @@ class TelaTratamentoLente extends StatefulWidget {
 
 class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
   TipoTratamento _tratamentoSelecionado = TipoTratamento.nenhum;
-  double _sliderAntirreflexoValue = 0.0; // Initial value for the anti-reflection slider
-  double _posicaoLente = 0.25; // Initial position for the photochromic lens
-  double _sliderFiltroAzulValue = 0.0; // Initial value for the blue light filter slider
+  
+  // Variáveis para tratamentos existentes
+  double _sliderAntirreflexoValue = 0.0;
+  double _posicaoLente = 0.25;
+  double _sliderFiltroAzulValue = 0.0;
 
-  // Builds the menu for selecting lens treatments
+  // --- VARIÁVEIS DO COMPARATIVO DE ESPESSURA (NOVO) ---
+  double _grauSelecionadoComparativo = -4.0;
+  double _indiceEsquerda = 1.56;
+  double _indiceDireita = 1.67;
+  final Map<String, double> _opcoesLentes = {
+    '1.56': 1.56,
+    '1.59': 1.59,
+    '1.61': 1.61,
+    '1.67': 1.67,
+    '1.74': 1.74,
+  };
+  double _expoenteExagero = 3.0;
+
+  // --- MENU PRINCIPAL ATUALIZADO ---
   Widget _buildMenuTratamentos() {
     return Container(
       color: Colors.grey[200],
@@ -43,28 +66,42 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
             const Text('Selecione um tratamento para ver a simulação',
                 style: TextStyle(fontSize: 16, color: Colors.black54)),
             const SizedBox(height: 40),
-            // Iterate through treatment types, excluding 'nenhum'
+            
+            // Botões (incluindo o novo)
             ...TipoTratamento.values.where((t) => t != TipoTratamento.nenhum).map((tratamento) {
               String textoBotao = "";
+              IconData? icone;
+              
               switch (tratamento) {
                 case TipoTratamento.antirreflexo:
                   textoBotao = "Antirreflexo";
+                  icone = Icons.flash_on;
                   break;
                 case TipoTratamento.fotossensivel:
                   textoBotao = "Fotossensível";
+                  icone = Icons.wb_sunny;
                   break;
                 case TipoTratamento.filtroAzul:
                   textoBotao = "Filtro de Luz Azul";
+                  icone = Icons.lightbulb;
                   break;
                 case TipoTratamento.camadas:
                   textoBotao = "Camadas";
+                  icone = Icons.layers;
                   break;
-                case TipoTratamento.nenhum: // Should not be reached due to .where clause
+                case TipoTratamento.comparativoEspessura: // NOVO
+                  textoBotao = "Comparativo de Espessura";
+                  icone = Icons.compare;
+                  break;
+                case TipoTratamento.nenhum:
                   break;
               }
+              
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
+                  icon: Icon(icone, size: 24),
+                  label: Text(textoBotao),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0A2956),
                     foregroundColor: Colors.white,
@@ -73,7 +110,6 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
                     textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () => setState(() => _tratamentoSelecionado = tratamento),
-                  child: Text(textoBotao),
                 ),
               );
             }),
@@ -83,7 +119,7 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
     );
   }
 
-  // Builds the back button
+  // --- BOTÃO VOLTAR (MANTIDO) ---
   Widget _buildBotaoVoltar() {
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, top: 16.0),
@@ -106,10 +142,26 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
     );
   }
 
-  // Builds the simulation area based on the selected treatment
+  // --- ÁREA DE SIMULAÇÃO ATUALIZADA ---
   Widget _buildAreaSimulacao() {
     switch (_tratamentoSelecionado) {
       case TipoTratamento.antirreflexo:
+        return _buildAntirreflexo();
+      case TipoTratamento.fotossensivel:
+        return _buildFotossensivel();
+      case TipoTratamento.filtroAzul:
+        return _buildFiltroAzul();
+      case TipoTratamento.camadas:
+        return const CamadasLenteWidget();
+      case TipoTratamento.comparativoEspessura: // NOVO
+        return _buildComparativoEspessura();
+      case TipoTratamento.nenhum:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // --- WIDGETS EXISTENTES (MANTIDOS) ---
+  Widget _buildAntirreflexo() {
         return LayoutBuilder(
           builder: (context, constraints) => GestureDetector(
             onHorizontalDragUpdate: (details) =>
@@ -130,49 +182,32 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
                 ),
               ],
             ),
-          ),
+      )
         );
+  }
 
-      case TipoTratamento.fotossensivel:
+  Widget _buildFotossensivel() {
         return LayoutBuilder(builder: (context, constraints) {
-          // 'darkeningStrength' controls how much the lenses darken
-          // It goes from 0.0 (transparent tint) to 0.7 (max tint strength)
-          // as _posicaoLente goes from 0.5 to 1.0.
           final darkeningStrength = (_posicaoLente - 0.5).clamp(0.0, 1.0) * 2 * 0.7;
-
-          // Define the start and end colors for the lens tint
-          final Color startTint = Colors.transparent;
-          final Color endTint = Colors.black; // Example: dark grey/black tint
-
-          // Interpolate the color based on the darkening strength
-          final Color currentLensTint = Color.lerp(startTint, endTint, darkeningStrength)!;
+      final Color currentLensTint = Color.lerp(Colors.transparent, Colors.black, darkeningStrength)!;
 
           return Stack(children: [
             Positioned.fill(child: Image.asset('assets/images/cenario_composto.jpg', fit: BoxFit.cover)),
             Positioned(
-              left: _posicaoLente * (constraints.maxWidth - 150.0), // Position based on slider
-              top: (constraints.maxHeight - 150.0) / 2, // Vertically center the lens
+          left: _posicaoLente * (constraints.maxWidth - 150.0),
+          top: (constraints.maxHeight - 150.0) / 2,
               child: GestureDetector(
                 onHorizontalDragUpdate: (details) => setState(() {
                   _posicaoLente += details.delta.dx / (constraints.maxWidth - 150.0);
                   _posicaoLente = _posicaoLente.clamp(0.0, 1.0);
                 }),
-                // This Stack will layer the static frame and the dynamic lenses
                 child: Stack(
                   children: [
-                    // 1. The full glasses SVG (frame + base lenses), without dynamic tinting
+                SvgPicture.asset('assets/images/lente_oculos.svg', width: 200, height: 200),
                     SvgPicture.asset(
-                      'assets/images/lente_oculos.svg', // Path to your full glasses SVG
+                  'assets/images/lente_oculos_fs.svg',
                       width: 200,
                       height: 200,
-                      // No colorFilter here, so the frame stays its original color (black)
-                    ),
-                    // 2. The lenses-only SVG, with dynamic tinting applied
-                    SvgPicture.asset(
-                      'assets/images/lente_oculos_fs.svg', // Path to your lenses-only SVG
-                      width: 200,
-                      height: 200,
-                      // Apply the dynamically calculated color filter
                       colorFilter: ColorFilter.mode(currentLensTint, BlendMode.srcIn),
                     ),
                   ],
@@ -181,8 +216,9 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
             ),
           ]);
         });
+  }
 
-      case TipoTratamento.filtroAzul:
+  Widget _buildFiltroAzul() {
         return LayoutBuilder(
           builder: (context, constraints) => GestureDetector(
             onHorizontalDragUpdate: (details) =>
@@ -205,13 +241,107 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
             ),
           ),
         );
+  }
 
-      case TipoTratamento.camadas:
-        return const CamadasLenteWidget();
+  // --- NOVO WIDGET: COMPARATIVO DE ESPESSURA ---
+  Widget _buildComparativoEspessura() {
+    return Container(
+      color: Colors.grey[200],
+      child: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 80.0, left: 16.0, right: 16.0, bottom: 16.0),
+              child: Column(
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Grau Esférico: ${_grauSelecionadoComparativo.toStringAsFixed(2)}', 
+                          style: const TextStyle(fontSize: 18, color: Colors.black54)),
+                      Slider(
+                        value: _grauSelecionadoComparativo,
+                        min: -10.0,
+                        max: 10.0,
+                        divisions: 80,
+                        label: _grauSelecionadoComparativo.toStringAsFixed(2),
+                        onChanged: (value) => setState(() => _grauSelecionadoComparativo = value),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSideBySideLensView(_indiceEsquerda, (v) => setState(() => _indiceEsquerda = v))),
+                        const VerticalDivider(width: 2, thickness: 2, color: Colors.black26),
+                        Expanded(child: _buildSideBySideLensView(_indiceDireita, (v) => setState(() => _indiceDireita = v))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _buildBotaoVoltar(),
+        ],
+      ),
+    );
+  }
 
-      case TipoTratamento.nenhum:
-        return const SizedBox.shrink(); // Empty widget when no treatment is selected
+  Widget _buildSideBySideLensView(double currentIndex, ValueChanged<double> onChanged) {
+    double espessuraBorda = 0.1;
+    double espessuraCentro = 0.1;
+    double grauAbsolutoNormalizado = _grauSelecionadoComparativo.abs() / 10.0;
+    
+    if (_grauSelecionadoComparativo < 0) {
+      espessuraBorda = 0.1 + (grauAbsolutoNormalizado * 0.9);
+    } else {
+      espessuraCentro = 0.1 + (grauAbsolutoNormalizado * 0.9);
     }
+
+    double fatorReducao = pow(1.50 / currentIndex, _expoenteExagero).toDouble();
+    espessuraBorda *= fatorReducao;
+    espessuraCentro *= fatorReducao;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        Wrap(
+          spacing: 4.0,
+          runSpacing: 4.0,
+          alignment: WrapAlignment.center,
+          children: _opcoesLentes.entries.map((entry) {
+            final bool isSelected = entry.value == currentIndex;
+            return OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: isSelected ? const Color(0xFF0A2956).withOpacity(0.1) : Colors.transparent,
+                side: BorderSide(color: isSelected ? const Color(0xFF0A2956) : Colors.grey),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              onPressed: () => onChanged(entry.value),
+              child: Text(entry.key, 
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 12, 
+                    color: isSelected ? const Color(0xFF0A2956) : Colors.black54)),
+            );
+          }).toList(),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+            child: CustomPaint(
+              size: Size.infinite, 
+              painter: _LentePainter(
+                espessuraBorda: espessuraBorda.clamp(0.05, 1.0),
+                espessuraCentro: espessuraCentro.clamp(0.05, 1.0),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -224,7 +354,7 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
         child: _tratamentoSelecionado == TipoTratamento.nenhum
             ? _buildMenuTratamentos()
             : Stack(
-                key: ValueKey(_tratamentoSelecionado), // Key for AnimatedSwitcher to recognize state changes
+                key: ValueKey(_tratamentoSelecionado),
                 children: [_buildAreaSimulacao(), _buildBotaoVoltar()],
               ),
       ),
@@ -232,7 +362,62 @@ class _TelaTratamentoLenteState extends State<TelaTratamentoLente> {
   }
 }
 
-// Widget for simulating lens layers
+// --- CLASSE DO PAINTER (COPIADA DO ESPESSURA_LENTE) ---
+class _LentePainter extends CustomPainter {
+  final double espessuraBorda;
+  final double espessuraCentro;
+  _LentePainter({required this.espessuraBorda, required this.espessuraCentro});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [
+          Colors.blue.shade300.withOpacity(0.4),
+          Colors.blue.shade100.withOpacity(0.5),
+          Colors.blue.shade300.withOpacity(0.4),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final path = Path();
+    final double espessuraMinima = size.height * 0.02;
+    final double alturaBorda = espessuraMinima + (size.height * 0.8 * espessuraBorda);
+    final double alturaCentro = espessuraMinima + (size.height * 0.8 * espessuraCentro);
+    
+    final pTopoEsquerda = Offset(0, size.height / 2 - alturaBorda / 2);
+    final pTopoDireita = Offset(size.width, size.height / 2 - alturaBorda / 2);
+    final pControleTopo1 = Offset(size.width * 0.25, size.height / 2 - alturaCentro / 2);
+    final pControleTopo2 = Offset(size.width * 0.75, size.height / 2 - alturaCentro / 2);
+
+    final pBaixoDireita = Offset(size.width, size.height / 2 + alturaBorda / 2);
+    final pBaixoEsquerda = Offset(0, size.height / 2 + alturaBorda / 2);
+    final pControleBaixo1 = Offset(size.width * 0.75, size.height / 2 + alturaCentro / 2);
+    final pControleBaixo2 = Offset(size.width * 0.25, size.height / 2 + alturaCentro / 2);
+
+    path.moveTo(pTopoEsquerda.dx, pTopoEsquerda.dy);
+    path.cubicTo(pControleTopo1.dx, pControleTopo1.dy, pControleTopo2.dx, pControleTopo2.dy, pTopoDireita.dx, pTopoDireita.dy);
+    path.lineTo(pBaixoDireita.dx, pBaixoDireita.dy);
+    path.cubicTo(pControleBaixo1.dx, pControleBaixo1.dy, pControleBaixo2.dx, pControleBaixo2.dy, pBaixoEsquerda.dx, pBaixoEsquerda.dy);
+    path.close();
+
+    final paintBorda = Paint()
+      ..color = Colors.blue.shade700.withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, paintBorda);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LentePainter oldDelegate) {
+    return oldDelegate.espessuraBorda != espessuraBorda || oldDelegate.espessuraCentro != espessuraCentro;
+  }
+}
+
+// --- WIDGET DE CAMADAS (MANTIDO) ---
 class CamadasLenteWidget extends StatefulWidget {
   const CamadasLenteWidget({super.key});
 
@@ -241,158 +426,56 @@ class CamadasLenteWidget extends StatefulWidget {
 }
 
 class _CamadasLenteWidgetState extends State<CamadasLenteWidget> {
-  bool _filtroAzul = false;
-  bool _antirreflexo = false;
-  bool _antiRisco = false;
+  bool filtroAzul = false;
+  bool antiReflexo = false;
+  bool antiRisco = false;
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
+    final layers = [
+      _LayerData(label: 'Lente Base', color: Colors.grey.shade400, isVisible: true, depth: 0, icon: Icons.remove_red_eye),
+      _LayerData(label: 'Anti-Risco', color: Colors.green.shade600, isVisible: antiRisco, depth: 1, icon: Icons.security),
+      _LayerData(label: 'Anti-Reflexo', color: Colors.purple.shade600, isVisible: antiReflexo, depth: 2, icon: Icons.flash_on),
+      _LayerData(label: 'Filtro Azul', color: Colors.blue.shade600, isVisible: filtroAzul, depth: 3, icon: Icons.lightbulb_outline),
+    ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: Column(
         children: [
-          // Chips de seleção com tamanho responsivo
+          Text('Camadas da Lente', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
           Wrap(
-            spacing: isTablet ? 20 : 8,
-            runSpacing: 12,
+            spacing: 12,
             children: [
-              _buildEnhancedChip(
-                label: 'Filtro Azul',
-                selected: _filtroAzul,
-                onSelected: (v) => setState(() => _filtroAzul = v),
-                color: Colors.blue[700]!,
-                icon: Icons.lightbulb_outline,
-              ),
-              _buildEnhancedChip(
-                label: 'Anti-Reflexo',
-                selected: _antirreflexo,
-                onSelected: (v) => setState(() => _antirreflexo = v),
-                color: Colors.purple[700]!,
-                icon: Icons.flash_on,
-              ),
-              _buildEnhancedChip(
-                label: 'Anti-Risco',
-                selected: _antiRisco,
-                onSelected: (v) => setState(() => _antiRisco = v),
-                color: Colors.green[700]!,
-                icon: Icons.security,
-              ),
+              _buildToggleChip('Filtro Azul', filtroAzul, (v) => setState(() => filtroAzul = v), Colors.blue.shade700),
+              _buildToggleChip('Anti-Reflexo', antiReflexo, (v) => setState(() => antiReflexo = v), Colors.purple.shade700),
+              _buildToggleChip('Anti-Risco', antiRisco, (v) => setState(() => antiRisco = v), Colors.green.shade700),
             ],
           ),
-          const SizedBox(height: 32),
-          
-          // Representação 3D das camadas
+          const SizedBox(height: 40),
           SizedBox(
-            height: isTablet ? 350 : 280,
+            height: 340,
             child: Stack(
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
-              children: [
-                // Fundo decorativo
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blueGrey.withOpacity(0.3),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 10),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Efeito de profundidade
-                Positioned(
-                  top: 40,
-                  child: Container(
-                    width: 240,
-                    height: 240,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.2),
-                      border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-                    ),
-                  ),
-                ),
-                
-                // Camadas de tratamento
-                Positioned(
-                  top: 80,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Lente base (sempre visível)
-                      _build3DLayer(
-                        color: Colors.grey[300]!,
-                        text: 'Lente Base',
-                        index: 0,
-                        isSelected: true,
-                      ),
-                      
-                      // Anti-Risco
-                      if (_antiRisco)
-                        _build3DLayer(
-                          color: Colors.green[400]!,
-                          text: 'Anti-Risco',
-                          index: 1,
-                          isSelected: _antiRisco,
-                        ),
-                      
-                      // Anti-Reflexo
-                      if (_antirreflexo)
-                        _build3DLayer(
-                          color: Colors.purple[300]!,
-                          text: 'Anti-Reflexo',
-                          index: 2,
-                          isSelected: _antirreflexo,
-                        ),
-                      
-                      // Filtro Azul
-                      if (_filtroAzul)
-                        _build3DLayer(
-                          color: Colors.blue[300]!,
-                          text: 'Filtro Azul',
-                          index: 3,
-                          isSelected: _filtroAzul,
-                        ),
-                    ],
-                  ),
-                ),
-                
-                // Efeito de reflexo
-                Positioned(
-                  top: 90,
-                  right: 60,
-                  child: Transform.rotate(
-                    angle: -0.3,
-                    child: Container(
-                      width: 100,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.6),
-                            Colors.white.withOpacity(0.1),
-                          ],
-                          stops: const [0.2, 1.0],
+              children: layers.map((layer) {
+                final double yOffset = -layer.depth * 28.0;
+                final double scale = 1 - layer.depth * 0.08;
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOut,
+                  top: 170 + yOffset,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: AnimatedOpacity(
+                      opacity: layer.isVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 500),
+                      child: _LayerCard(data: layer),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -400,107 +483,67 @@ class _CamadasLenteWidgetState extends State<CamadasLenteWidget> {
     );
   }
 
-  // Chip aprimorado com ícone e efeitos
-  Widget _buildEnhancedChip({
-    required String label,
-    required bool selected,
-    required Function(bool) onSelected,
-    required Color color,
-    required IconData icon,
-  }) {
+  Widget _buildToggleChip(String label, bool selected, ValueChanged<bool> onSelected, Color color) {
     return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: selected ? Colors.white : color),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : Colors.black87,
-          )),
-        ],
-      ),
+      label: Text(label, style: TextStyle(color: selected ? Colors.white : color)),
       selected: selected,
       onSelected: onSelected,
-      backgroundColor: selected ? color : Colors.grey[200],
       selectedColor: color,
+      backgroundColor: color.withOpacity(0.2),
       checkmarkColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: selected ? color : Colors.grey[300]!, width: 1.5),
-      ),
-      elevation: 4,
-      shadowColor: Colors.black26,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
+}
 
-  // Camada 3D com efeitos de profundidade
-  Widget _build3DLayer({
-    required Color color,
-    required String text,
-    required int index,
-    required bool isSelected,
-  }) {
-    final double size = 200 - index * 20;
-    final double elevation = index * 6.0;
-    final double borderRadius = size / 2;
+class _LayerData {
+  final String label;
+  final Color color;
+  final bool isVisible;
+  final int depth;
+  final IconData icon;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutBack,
-      width: size,
-      height: size,
+  _LayerData({
+    required this.label,
+    required this.color,
+    required this.isVisible,
+    required this.depth,
+    required this.icon,
+  });
+}
+
+class _LayerCard extends StatelessWidget {
+  final _LayerData data;
+  const _LayerCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 14,
+      borderRadius: BorderRadius.circular(28),
+      color: data.color,
+      child: Container(
+        width: 280,
+        height: 190,
+        padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
+          borderRadius: BorderRadius.circular(28),
         gradient: LinearGradient(
+            colors: [data.color.withOpacity(0.95), data.color.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(color, Colors.white, 0.3)!,
-            Color.lerp(color, Colors.black, 0.1)!,
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.4),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: elevation,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.4),
-            blurRadius: 8,
-            spreadRadius: -2,
-            offset: const Offset(-4, -4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: AnimatedOpacity(
-          opacity: isSelected ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: Colors.black45,
-                  blurRadius: 2,
-                  offset: Offset(1, 1),
+        ),
+        child: Row(
+          children: [
+            Icon(data.icon, size: 52, color: Colors.white),
+            const SizedBox(width: 26),
+            Expanded(
+              child: Text(data.label,
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
-            ),
-          ),
         ),
       ),
     );
