@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/background" />
+
+    <!-- Fundo da splash (cor sólida) -->
+    <item android:drawable="@color/splash_background" />
+
+    <!-- Logo centralizado, com margens pequenas para ficar maior -->
     <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/logo"
-            android:tileMode="disabled" />
+        <inset
+            android:insetLeft="24dp"
+            android:insetRight="24dp"
+            android:insetTop="24dp"
+            android:insetBottom="24dp">
+            <bitmap
+                android:gravity="center"
+                android:src="@drawable/splash_logo"
+                android:tileMode="disabled" />
+        </inset>
     </item>
+
 </layer-list>
